@@ -1,0 +1,88 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Volette",
+  "projectDescription": "Expression-oriented programming language and compiler that compiles to native code",
+  "theme": "aspen",
+  "primaryColor": "#E85D75",
+  "lightColor": "#FFB4C2",
+  "darkColor": "#C14359",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Language Guide",
+            "pages": [
+              "language/types",
+              "language/variables",
+              "language/functions",
+              "language/control-flow",
+              "language/structs",
+              "language/operators"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/build",
+              "cli/overview"
+            ]
+          },
+          {
+            "group": "Examples",
+            "pages": [
+              "examples/factorial",
+              "examples/fibonacci",
+              "examples/structs"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Compiler Internals",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "internals/overview",
+              "internals/pipeline"
+            ]
+          },
+          {
+            "group": "Compiler Phases",
+            "pages": [
+              "internals/lexer",
+              "internals/parser",
+              "internals/analysis",
+              "internals/codegen"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Expression-oriented syntax",
+    "Static type system with inference",
+    "Native code compilation via Citadel backend",
+    "Rust-like syntax with simplified semantics",
+    "Struct types with anonymous structs",
+    "Type casting and coercion"
+  ],
+  "publicApiSurface": [
+    "volette build <file> -o <output>",
+    "volette run <file>",
+    "Types: i32, i64, f32, f64, bool, unit, isize, usize",
+    "Keywords: fn, let, mut, if, else, while, break, continue, return, struct, as",
+    "Operators: +, -, *, /, %, ==, !=, <, >, <=, >=, &&, ||, !, =, +=, -=, *=, /=, %="
+  ]
+}
