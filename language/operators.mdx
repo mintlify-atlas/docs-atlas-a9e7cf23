@@ -259,6 +259,7 @@ fn countdown(start: i32): i32 {
 | `*=` | Multiply and assign | `x *= 5` | `x = x * 5` |
 | `/=` | Divide and assign | `x /= 5` | `x = x / 5` |
 | `%=` | Modulo and assign | `x %= 5` | `x = x % 5` |
+| `**=` | Power and assign | `x **= 2` | `x = x ** 2` |
 
 ## Bitwise Operators
 
@@ -271,7 +272,6 @@ Bitwise operators perform operations on individual bits.
 | `&` | Bitwise AND | `a & b` |
 | `|` | Bitwise OR | `a | b` |
 | `^` | Bitwise XOR | `a ^ b` |
-| `~` | Bitwise NOT | `~a` |
 | `<<` | Left shift | `a << 2` |
 | `>>` | Right shift | `a >> 2` |
 
@@ -282,7 +282,6 @@ Bitwise operators perform operations on individual bits.
 | `&=` | AND and assign | `x &= 5` | `x = x & 5` |
 | `|=` | OR and assign | `x |= 5` | `x = x | 5` |
 | `^=` | XOR and assign | `x ^= 5` | `x = x ^ 5` |
-| `~=` | NOT and assign | `x ~= 5` | `x = ~x` |
 | `<<=` | Left shift and assign | `x <<= 2` | `x = x << 2` |
 | `>>=` | Right shift and assign | `x >>= 2` | `x = x >> 2` |
 
@@ -429,6 +428,6 @@ Use parentheses `()` to explicitly control evaluation order and improve code cla
 - **Comparison**: `==`, `!=`, `<`, `<=`, `>`, `>=`
 - **Logical**: `&&`, `||`, `!`
 - **Assignment**: `=`, `+=`, `-=`, `*=`, `/=`, `%=`
-- **Bitwise**: `&`, `|`, `^`, `~`, `<<`, `>>`
+- **Bitwise**: `&`, `|`, `^`, `<<`, `>>`
 - **Unary**: `-`, `!`, `&`, `@`
 - **Type casting**: `as` for explicit type conversion
