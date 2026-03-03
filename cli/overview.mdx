@@ -1,0 +1,62 @@
+---
+title: CLI Overview
+description: Overview of the volette CLI toolchain and available commands
+---
+
+The Volette CLI is the primary interface for compiling and running Volette programs. It provides a set of commands for building your code into assembly and executing programs.
+
+## Installation
+
+The Volette toolchain can be installed via Cargo:
+
+```bash
+cargo install volette
+```
+
+## Available Commands
+
+The Volette CLI supports the following commands:
+
+### build (alias: b)
+
+Compiles a Volette source file into assembly output.
+
+```bash
+volette build <file> [OPTIONS]
+```
+
+See the [build command documentation](/cli/build) for detailed usage.
+
+### run (alias: r)
+
+Runs a Volette program directly.
+
+```bash
+volette run
+```
+
+<Note>
+The `run` command is currently under development.
+</Note>
+
+## Getting Help
+
+You can display help information for any command using the `--help` flag:
+
+```bash
+volette --help
+volette build --help
+```
+
+## Command Aliases
+
+For convenience, common commands have short aliases:
+
+- `build` → `b`
+- `run` → `r`
+
+Example:
+
+```bash
+volette b main.vt -o output.s
+```

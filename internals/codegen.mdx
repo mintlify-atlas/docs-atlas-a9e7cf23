@@ -1,0 +1,557 @@
+---
+title: Code Generation
+description: Lowering to Citadel IR and assembly output in the Volette compiler
+---
+
+The code generation phase transforms the type-checked AST into executable code. Volette uses the Citadel IR framework as an intermediate representation before generating native assembly.
+
+## Overview
+
+Code generation is implemented in `src/compiler/codegen/` and consists of two main stages:
+
+1. **Lowering** - Transform Volette AST to Citadel HIR (High-level IR)
+2. **Backend** - Transform Citadel HIR to native assembly (AArch64)
+
+### Codegen Entry Point
+
+The `codegen()` function (codegen/mod.rs:13-20):
+
+```rust
+pub fn codegen(
+    root: &Node,
+    nodes: &Arena<Node>,
+    interner: &StringInterner,
+    output_path: &Path,
+) -> Result<ReportCollection, Report>
+```
+
+Process:
+1. Create bump allocator for IR generation
+2. Lower AST to Citadel HIR
+3. Print HIR for debugging
+4. Generate assembly via backend
+5. Write assembly to output file
+
+## Citadel Backend
+
+Implemented in `codegen/citadel/mod.rs`.
+
+### What is Citadel?
+
+Citadel is an IR (Intermediate Representation) framework that provides:
+
+- **High-level IR** - Abstract representation of program logic
+- **Multiple backends** - Currently AArch64, extensible to other architectures
+- **Type system** - Primitive types and type annotations
+- **Control flow** - Labels, jumps, conditional branches
+- **SSA-like** - Expressions and statements separated
+
+### Backend Selection
+
+Currently uses AArch64 backend (codegen/citadel/mod.rs:35-37):
+
+```rust
+let backend = AArch64Backend::new(TargetAArch64);
+let output = backend.generate(hir);
+let asm_output = backend.format(&output).unwrap_or_default();
+```
+
+Future backends could target:
+- x86-64
+- RISC-V
+- WebAssembly
+- LLVM IR
+
+## Lowering to Citadel HIR
+
+Implemented in `codegen/citadel/lower.rs`.
+
+### CitadelLowering Structure
+
+```rust
+pub struct CitadelLowering<'a> {
+    arena: &'a Bump,                  // Bump allocator for IR
+    nodes: &'a Arena<Node>,           // Input AST
+    interner: &'a StringInterner,     // String interning
+    ir_gen: IRGenerator<'a>,          // IR builder
+    label_counter: usize,             // Unique label generation
+    scopes: Vec<HashMap<...>>,        // Variable scoping
+    var_counter: usize,               // Variable name mangling
+    loop_stack: Vec<LoopContext>,     // Loop break/continue labels
+}
+```
+
+### Lowering Process
+
+The `lower()` method (lower.rs:93-110):
+
+1. Match on root node
+2. For each definition:
+   - Lower function definitions
+   - Skip struct definitions (not yet implemented)
+3. Return HIR stream
+
+## Function Lowering
+
+The `lower_function()` method (lower.rs:137-175):
+
+1. **Setup:**
+   - Resolve function name
+   - Lower return type
+   - Create new scope
+
+2. **Parameters:**
+   - Lower each parameter type
+   - Create mangled name for each parameter
+   - Build `IRTypedIdent` for each parameter
+   - Add to scope
+
+3. **Body:**
+   - Lower function body to block statement
+   - Pop scope
+
+4. **Generate IR:**
+   - Create `FuncStmt` with name, args, and body
+   - Add to IR stream
+
+### Name Mangling
+
+Variables are mangled to avoid conflicts (lower.rs:63-71):
+
+```rust
+fn declare_var(&mut self, sym: SymbolUsize, ty: Type<'a>) -> &'a str {
+    let base_name = self.interner.resolve(sym).unwrap_or("var");
+    let mangled = format!("{}_{}", base_name, self.var_counter);
+    self.var_counter += 1;
+    // Add to scope
+    mangled
+}
+```
+
+Example:
+```volette
+let x = 5;
+let x = 10;  // Different scope
+```
+
+Becomes:
+```
+let x_0 = 5;
+let x_1 = 10;
+```
+
+## Expression Lowering
+
+Expressions are lowered using `lower_expr_with_prereqs()` (lower.rs:255-464).
+
+### Prerequisite Statements
+
+Many expressions require statements to execute first:
+
+```rust
+fn lower_expr_with_prereqs(&mut self, idx: Index) 
+    -> Result<(Vec<IRStmt<'a>>, IRExpr<'a>), Report>
+```
+
+Returns:
+- Vector of prerequisite statements
+- The expression value
+
+Example:
+```volette
+foo(bar(), baz())
+```
+
+Lowers to:
+```
+let tmp_0 = bar();     // Prerequisite
+let tmp_1 = baz();     // Prerequisite
+foo(tmp_0, tmp_1)      // Expression
+```
+
+### Literals
+
+Literal lowering (lower.rs:466-486):
+
+```rust
+match lit {
+    VLit::Int(v) => {
+        match type_hint {
+            Type::Ident(INT8_T) => IRExpr::Literal(Literal::Int8(v as i8), ty),
+            Type::Ident(INT64_T) => IRExpr::Literal(Literal::Int64(v), ty),
+            _ => IRExpr::Literal(Literal::Int32(v as i32), ty),
+        }
+    }
+    VLit::Float(v) => IRExpr::Literal(Literal::Float64(v), Type::Ident(FLOAT64_T)),
+    VLit::Bool(v) => IRExpr::Literal(Literal::Bool(v), Type::Ident(INT8_T)),
+}
+```
+
+### Identifiers
+
+Identifier resolution (lower.rs:265-268):
+
+1. Look up in variable scopes
+2. If found, use mangled name
+3. If not found (global), use original name
+4. Return as `IRExpr::Ident`
+
+### Binary Operations
+
+Binary operation lowering (lower.rs:509-592):
+
+1. Lower left operand (with prerequisites)
+2. Lower right operand (with prerequisites)
+3. Combine prerequisites
+4. Create appropriate IR expression:
+   - **Arithmetic** (`+`, `-`, `*`, `/`, `%`) → `ArithOpExpr`
+   - **Comparison** (`==`, `!=`, `<`, `>`, `<=`, `>=`) → `CmpOpExpr`
+   - **Logical** (`&&`, `||`) → `ArithOpExpr` with And/Or
+   - **Bitwise** (`&`, `|`, `^`) → `ArithOpExpr`
+
+Example:
+```volette
+x + y * 2
+```
+
+Lowers to:
+```rust
+ArithOpExpr {
+    op: Add,
+    values: (
+        IRExpr::Ident("x_0"),
+        ArithOpExpr {
+            op: Mul,
+            values: (IRExpr::Ident("y_0"), Literal::Int32(2))
+        }
+    )
+}
+```
+
+### Unary Operations
+
+Unary operation lowering (lower.rs:488-507):
+
+```rust
+match op {
+    UnaryOpKind::Neg => UnaryOpExpr { op: UnaryOp::Neg, operand },
+    UnaryOpKind::Not => UnaryOpExpr { op: UnaryOp::Not, operand },
+    UnaryOpKind::AddressOf => UnaryOpExpr { op: UnaryOp::AddrOf, operand },
+    UnaryOpKind::Deref => UnaryOpExpr { op: UnaryOp::Deref, operand },
+}
+```
+
+### Function Calls
+
+Call lowering (lower.rs:594-624):
+
+1. Extract function name from identifier
+2. Lower each argument:
+   - Collect prerequisites
+   - Get argument expression
+3. Create `CallExpr` with function name and arguments
+
+### Assignments
+
+Assignment lowering (lower.rs:329-356):
+
+1. Extract target identifier name
+2. Look up mangled name in scope
+3. Lower value expression (with prerequisites)
+4. Add prerequisite statements
+5. Add `AssignStmt` to statements
+6. Return target identifier as expression value
+
+Assignments are expressions that return the assigned value:
+```volette
+let y = (x = 5);  // y is 5
+```
+
+### Let Bindings
+
+Let binding lowering (lower.rs:358-381):
+
+1. Lower value expression (with prerequisites)
+2. Get type from type annotation or infer
+3. Check if type is zero-sized (Unit):
+   - If yes, emit only call if value is call expression
+4. Create mangled variable name
+5. Add to scope
+6. Create `VarStmt` with name, type, and value
+7. Return variable identifier as expression
+
+### Block Expressions
+
+Block lowering (lower.rs:300-319):
+
+1. Push new scope
+2. Lower all expressions except last
+3. Lower last expression specially:
+   - Collect prerequisites
+   - Use expression value as block result
+4. Pop scope
+5. Return combined statements and final expression
+
+## Control Flow Lowering
+
+### If Expressions
+
+If lowering (lower.rs:768-802):
+
+1. **Generate labels:**
+   ```rust
+   let then_label = fresh_label("then");
+   let else_label = fresh_label("else");
+   let end_label = fresh_label("endif");
+   ```
+
+2. **Condition:**
+   - Lower condition expression
+   - Emit `BrIfStmt` (branch if true)
+
+3. **Then block:**
+   - Emit then label
+   - Lower then block statements
+   - Jump to end
+
+4. **Else block:**
+   - Emit else label
+   - Lower else block (if exists)
+   - Jump to end
+
+5. **End:**
+   - Emit end label
+
+Example:
+```volette
+if x > 0 { print(x); } else { print(0); }
+```
+
+Lowers to:
+```
+cond = x > 0
+br_if cond, then_0, else_0
+then_0:
+  call print(x)
+  jump endif_0
+else_0:
+  call print(0)
+  jump endif_0
+endif_0:
+```
+
+### While Loops
+
+While lowering (lower.rs:804-840):
+
+1. **Generate labels:**
+   ```rust
+   let loop_start = fresh_label("while_start");
+   let loop_body = fresh_label("while_body");
+   let loop_end = fresh_label("while_end");
+   ```
+
+2. **Push loop context:**
+   - Add to loop stack for break/continue
+   - Break label: `loop_end`
+   - Continue label: `loop_start`
+
+3. **Loop structure:**
+   - Emit start label
+   - Lower condition
+   - Branch to body or end
+   - Emit body label
+   - Lower body statements
+   - Jump back to start
+   - Emit end label
+
+4. **Pop loop context**
+
+Example:
+```volette
+while x > 0 {
+    x = x - 1;
+}
+```
+
+Lowers to:
+```
+while_start_0:
+  cond = x > 0
+  br_if cond, while_body_0, while_end_0
+while_body_0:
+  x = x - 1
+  jump while_start_0
+while_end_0:
+```
+
+### Break and Continue
+
+Break lowering (lower.rs:431-440):
+```rust
+let ctx = loop_stack.last()?;
+IRStmt::Jump(JumpStmt { label: ctx.break_label })
+```
+
+Continue lowering (lower.rs:442-451):
+```rust
+let ctx = loop_stack.last()?;
+IRStmt::Jump(JumpStmt { label: ctx.continue_label })
+```
+
+### Return Statements
+
+Return lowering (lower.rs:383-415):
+
+1. Check if return value is zero-sized type
+2. If yes, emit `ReturnStmt { ret_val: None }`
+3. Otherwise:
+   - Lower return value expression
+   - Add prerequisites
+   - Emit `ReturnStmt { ret_val: Some(expr) }`
+4. Return dummy value (not used, as return diverges)
+
+## Type Lowering
+
+The `lower_type()` method (lower.rs:842-851) converts Volette types to Citadel types:
+
+```rust
+match ty {
+    VType::Primitive(p) => Type::Ident(p.to_citadel_str()),
+    VType::Pointer(_) => Type::Ident(INT64_T),
+    _ => todo!()
+}
+```
+
+Primitive type mapping:
+- `i8` → `"i8"`
+- `i32` → `"i32"`
+- `i64` → `"i64"`
+- `f32` → `"f32"`
+- `f64` → `"f64"`
+- `bool` → `"i8"` (represented as byte)
+- Pointers → `"i64"` (64-bit addresses on AArch64)
+
+## Scoping
+
+The lowering phase maintains a scope stack:
+
+```rust
+fn push_scope(&mut self) {
+    self.scopes.push(HashMap::new());
+}
+
+fn pop_scope(&mut self) {
+    self.scopes.pop();
+}
+
+fn lookup_var(&self, sym: SymbolUsize) -> Option<(&'a str, Type<'a>)> {
+    for scope in self.scopes.iter().rev() {
+        if let Some(entry) = scope.get(&sym) {
+            return Some(*entry);
+        }
+    }
+    None
+}
+```
+
+Scopes are pushed/popped for:
+- Function bodies
+- Block expressions
+
+## Label Generation
+
+Unique labels for control flow (lower.rs:82-86):
+
+```rust
+fn fresh_label(&mut self, prefix: &str) -> &'a str {
+    let label = format!("{}_{}", prefix, self.label_counter);
+    self.label_counter += 1;
+    arena.alloc_str(&label)
+}
+```
+
+Examples:
+- `fresh_label("then")` → `"then_0"`, `"then_1"`, ...
+- `fresh_label("while_start")` → `"while_start_0"`, ...
+
+## Bump Allocation
+
+The lowering phase uses a bump allocator (`bumpalo::Bump`):
+
+- All IR strings and structures allocated in arena
+- No individual deallocations needed
+- Entire arena freed at once after codegen
+- Fast allocation (just increment pointer)
+- Cache-friendly (sequential memory)
+
+## Citadel IR Statements
+
+The generated HIR uses these statement types:
+
+- **Function** - Function definition
+- **Variable** - Variable declaration with initialization
+- **Assign** - Assignment to existing variable
+- **Return** - Return from function
+- **Call** - Function call (statement form)
+- **BrIf** - Conditional branch
+- **Jump** - Unconditional jump
+- **Label** - Jump target
+
+## Citadel IR Expressions
+
+Expression types in HIR:
+
+- **Literal** - Constant values
+- **Ident** - Variable reference
+- **ArithOp** - Arithmetic operations (+, -, *, /, %, etc.)
+- **CmpOp** - Comparison operations (==, !=, &lt;, &gt;, etc.)
+- **UnaryOp** - Unary operations (-, !, &, @)
+- **Call** - Function call (expression form)
+- **Cast** - Type conversion
+
+## Assembly Output
+
+The AArch64 backend generates assembly:
+
+1. Function prologue/epilogue
+2. Register allocation
+3. Instruction selection
+4. Stack frame management
+5. Calling convention (AAPCS64)
+
+Example output:
+```asm
+.global add
+add:
+    stp x29, x30, [sp, #-16]!
+    mov x29, sp
+    add w0, w0, w1
+    ldp x29, x30, [sp], #16
+    ret
+```
+
+## Output File
+
+The generated assembly is written to the specified output path:
+
+```rust
+std::fs::write(output_path, &asm_output)?;
+```
+
+Typically:
+- Input: `program.vol`
+- Output: `program.s` or `program.asm`
+
+## Future Codegen
+
+Planned improvements:
+
+- **Optimizations** - Constant folding, dead code elimination
+- **Register allocation** - Better register usage
+- **Inlining** - Inline small functions
+- **SIMD** - Vector operations
+- **Tail call optimization** - Optimize recursive calls
+- **Additional backends** - x86-64, RISC-V, WebAssembly
+- **Debug info** - DWARF debug information
+- **Position-independent code** - For shared libraries

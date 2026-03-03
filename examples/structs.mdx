@@ -1,0 +1,201 @@
+---
+title: Struct Examples
+description: Learn how to define and use structs in Volette, including anonymous structs
+---
+
+# Struct Examples
+
+Volette supports user-defined struct types with named fields, including both named and anonymous (inline) structs.
+
+## Basic Struct Definition
+
+Define a struct with named fields:
+
+```ts
+struct Point {
+    x: f32,
+    y: f32
+}
+```
+
+This creates a `Point` type with two floating-point fields: `x` and `y`.
+
+## Nested Structs with Anonymous Types
+
+You can nest structs within other structs using anonymous struct types:
+
+```ts
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    }
+}
+```
+
+Here, the `position` field is an anonymous struct type defined inline. The entity has:
+- An `id` field of type `i32`
+- A `position` field containing an anonymous struct with `x` and `y` fields
+
+## The Unit Type
+
+Volette has a special `unit` type that represents "no value" (similar to `void` in C or `()` in Rust). The unit value is written as `{}`.
+
+### Using Unit Type
+
+Here are examples of functions using the unit type:
+
+```rs
+fn get_unit(): unit {
+    {}
+}
+
+fn returns_nothing(): unit {
+    let x: i32 = 10;
+    let y: i32 = 20;
+    {}
+}
+
+fn test_unit(): i32 {
+    let u: unit = {};
+    let v: unit = get_unit();
+    42
+}
+```
+
+### How Unit Works
+
+- **Empty value**: The unit value `{}` represents an empty/void value
+- **Function return**: Functions that don't return a meaningful value return `unit`
+- **Variable binding**: You can bind unit values to variables with type annotation `unit`
+- **Expression-oriented**: Even functions returning `unit` are expressions that evaluate to `{}`
+
+## Struct Usage Patterns
+
+<Steps>
+  <Step title="Define your struct types">
+    Start by defining the structure of your data:
+    
+    ```ts
+    struct Vector2D {
+        x: f64,
+        y: f64
+    }
+    
+    struct Rectangle {
+        top_left: {
+            x: f64,
+            y: f64
+        },
+        width: f64,
+        height: f64
+    }
+    ```
+  </Step>
+
+  <Step title="Create instances">
+    Instantiate your structs with values (syntax may vary based on current implementation):
+    
+    ```ts
+    let origin = Vector2D { x: 0.0, y: 0.0 }
+    let rect = Rectangle {
+        top_left: { x: 10.0, y: 20.0 },
+        width: 100.0,
+        height: 50.0
+    }
+    ```
+  </Step>
+
+  <Step title="Access fields">
+    Use dot notation to access struct fields:
+    
+    ```rs
+    fn area(r: Rectangle): f64 {
+        r.width * r.height
+    }
+    
+    fn distance_from_origin(v: Vector2D): f64 {
+        // Calculate magnitude
+        (v.x * v.x + v.y * v.y) as f64
+    }
+    ```
+  </Step>
+</Steps>
+
+## Complete Example
+
+Here's a complete example combining structs with functions:
+
+```ts
+struct Point {
+    x: f32,
+    y: f32
+}
+
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    }
+}
+
+fn get_unit(): unit {
+    {}
+}
+
+fn returns_nothing(): unit {
+    let x: i32 = 10;
+    let y: i32 = 20;
+    {}
+}
+
+fn test_unit(): i32 {
+    let u: unit = {};
+    let v: unit = get_unit();
+    42
+}
+```
+
+## Type System Features
+
+Volette's struct system demonstrates several type system features:
+
+### Primitive Types
+- **Integers**: `i32`, `i64`, `isize`, `usize`
+- **Floats**: `f32`, `f64`
+- **Booleans**: `bool`
+- **Unit**: `unit` (empty/void type)
+
+### Composite Types
+- **Named structs**: Define reusable types with `struct` keyword
+- **Anonymous structs**: Define inline struct types for fields
+- **Nested structures**: Compose complex types from simpler ones
+
+### Type Annotations
+
+All struct fields require explicit type annotations:
+
+```ts
+struct TypedData {
+    count: i32,        // Integer field
+    ratio: f64,        // Float field
+    active: bool,      // Boolean field
+    metadata: unit     // Unit field
+}
+```
+
+## Key Takeaways
+
+- Structs provide user-defined composite types with named fields
+- Anonymous structs allow inline type definitions for fields
+- The `unit` type represents absence of a meaningful value
+- All struct fields must have explicit type annotations
+- Structs enable building complex data structures from primitive types
+
+## Next Steps
+
+- Learn about [types](/language/types) in detail
+- Explore [functions](/language/functions) that work with structs
+- Check out [variables](/language/variables) for struct instantiation patterns

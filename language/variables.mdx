@@ -1,0 +1,201 @@
+---
+title: Variables
+description: Learn how to declare variables in Volette with let bindings, type inference, and mutability
+---
+
+Volette uses the `let` keyword for variable declarations. Variables are immutable by default, promoting safer code practices.
+
+## Variable Declaration
+
+Variables are declared using the `let` keyword:
+
+```volette
+let x = 42
+let name = 100
+let is_active = true
+```
+
+## Type Annotations
+
+You can explicitly specify a variable's type using a colon followed by the type:
+
+```volette
+let age: i32 = 25
+let price: f64 = 99.99
+let is_enabled: bool = false
+let empty: unit = {}
+```
+
+<Info>
+Type annotations are optional when the type can be inferred from the value.
+</Info>
+
+## Type Inference
+
+Volette's compiler can automatically infer types from the assigned values:
+
+```volette
+let count = 10        // Inferred as i32
+let pi = 3.14         // Inferred as f64
+let flag = true       // Inferred as bool
+```
+
+### Inference with Functions
+
+Type inference works seamlessly with function returns:
+
+```volette
+fn get_value(): i32 {
+    42
+}
+
+fn example(): i32 {
+    let result = get_value()  // Inferred as i32
+    return result
+}
+```
+
+## Semicolons
+
+Semicolons are **optional** in Volette:
+
+<CodeGroup>
+```volette With Semicolons
+let x: i32 = 42;
+let y: f32 = 3.14;
+let z = x + 10;
+```
+
+```volette Without Semicolons
+let x: i32 = 42
+let y: f32 = 3.14
+let z = x + 10
+```
+</CodeGroup>
+
+Both styles are valid. Choose whichever you prefer for consistency.
+
+## Variable Reassignment
+
+Once declared, variables can be reassigned to new values:
+
+```volette
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i  // Reassigning result
+        i += 1       // Reassigning i
+    }
+    return result
+}
+```
+
+<Note>
+While variables can be reassigned, Volette encourages immutability where possible. Future versions may introduce `let mut` for explicit mutability.
+</Note>
+
+## Shadowing
+
+You can declare a new variable with the same name as a previous one, effectively shadowing it:
+
+```volette
+fn example(): i32 {
+    let x = 5
+    let x = x + 1      // Shadows previous x
+    let x = x * 2      // Shadows again
+    return x           // Returns 12
+}
+```
+
+Each `let` creates a new binding, allowing you to reuse variable names and even change types.
+
+## Scope
+
+Variables are scoped to the block in which they're declared:
+
+```volette
+fn scope_example(): i32 {
+    let outer = 10
+    
+    while outer > 0 {
+        let inner = outer * 2  // Only visible inside while loop
+        outer -= 1
+    }
+    
+    // 'inner' is not accessible here
+    return outer
+}
+```
+
+## Common Patterns
+
+### Multiple Declarations
+
+```volette
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+### Counter Variables
+
+```volette
+fn count_example(): i32 {
+    let count = 0
+    let sum = 0
+    
+    while count < 20 {
+        count += 1
+        sum += count
+    }
+    
+    return sum
+}
+```
+
+### Type Conversion Variables
+
+```volette
+fn convert(): f32 {
+    let a: i32 = 42
+    let b: f32 = a as f32  // Explicitly convert and store
+    return b
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Type Inference" icon="wand-magic-sparkles">
+    Let the compiler infer types when the value makes it obvious
+  </Card>
+  <Card title="Annotate When Needed" icon="tag">
+    Add explicit type annotations for clarity or when required
+  </Card>
+  <Card title="Descriptive Names" icon="signature">
+    Use meaningful variable names that describe their purpose
+  </Card>
+  <Card title="Minimize Scope" icon="minimize">
+    Declare variables in the smallest scope necessary
+  </Card>
+</CardGroup>
+
+## Summary
+
+- Use `let` to declare variables
+- Type annotations are optional with inference
+- Semicolons are optional
+- Variables can be reassigned
+- Shadowing allows reusing names
+- Variables are block-scoped

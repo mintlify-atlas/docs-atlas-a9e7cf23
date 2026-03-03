@@ -1,0 +1,183 @@
+---
+title: Fibonacci Example
+description: Calculate Fibonacci numbers using Volette with iterative loops
+---
+
+# Fibonacci Example
+
+This example shows how to calculate Fibonacci numbers using an iterative approach in Volette.
+
+## What is Fibonacci?
+
+The Fibonacci sequence is a series of numbers where each number is the sum of the two preceding ones:
+- `0, 1, 1, 2, 3, 5, 8, 13, 21, 34, ...`
+
+The `fib(n)` function returns the nth Fibonacci number (0-indexed).
+
+## Implementation
+
+Here's the complete Fibonacci implementation in Volette:
+
+```rs
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+### How It Works
+
+1. **Initialize**: Start with `a = 0` and `b = 1` (the first two Fibonacci numbers)
+2. **Counter**: Use `i` to track how many iterations we've performed
+3. **Loop**: Continue for `n` iterations
+4. **Swap values**: In each iteration:
+   - Calculate the next number: `tmp = a + b`
+   - Move `b` into `a`
+   - Move `tmp` into `b`
+5. **Return**: After `n` iterations, `a` contains the nth Fibonacci number
+
+This iterative approach has O(n) time complexity and O(1) space complexity.
+
+## Building and Running
+
+<Steps>
+  <Step title="Create the Volette file">
+    Save the Fibonacci function to a file:
+    
+    ```bash
+    # subjects/fib.vt
+    fn fib(n: i32): i32 {
+        let a = 0
+        let b = 1
+        let i = 0
+        while i < n {
+            let tmp = a + b
+            a = b
+            b = tmp
+            i += 1
+        }
+        return a
+    }
+    ```
+  </Step>
+
+  <Step title="Compile to assembly">
+    Use the Volette compiler to generate assembly code:
+    
+    ```bash
+    cargo run -- build subjects/fib.vt -o subjects/fib.s
+    ```
+  </Step>
+
+  <Step title="Assemble the object file">
+    Convert the assembly to an object file:
+    
+    ```bash
+    as -o subjects/fib.o subjects/fib.s
+    ```
+  </Step>
+
+  <Step title="Create a C wrapper">
+    Create a C program to call the Volette function:
+    
+    ```c
+    // subjects/main.c
+    #include <stdio.h>
+    
+    extern int fib(int n);
+    
+    int main() {
+        printf("fib(0) = %d\n", fib(0));
+        printf("fib(5) = %d\n", fib(5));
+        printf("fib(10) = %d\n", fib(10));
+        printf("fib(15) = %d\n", fib(15));
+        return 0;
+    }
+    ```
+  </Step>
+
+  <Step title="Link and execute">
+    Compile the C wrapper and link with the Volette object file:
+    
+    ```bash
+    gcc subjects/main.c subjects/fib.o -o subjects/fib
+    ./subjects/fib
+    ```
+    
+    Expected output:
+    ```
+    fib(0) = 0
+    fib(5) = 5
+    fib(10) = 55
+    fib(15) = 610
+    ```
+  </Step>
+</Steps>
+
+## Complete Example
+
+You can also combine factorial and Fibonacci in a single program:
+
+```rs
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i
+        i += 1
+    }
+    return result
+}
+
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+Then call both from C:
+
+```c
+#include <stdio.h>
+
+extern int factorial(int n);
+extern int fib(int n);
+
+int main() {
+    printf("factorial(5) = %d\n", factorial(5));
+    printf("fib(10) = %d\n", fib(10));
+    return 0;
+}
+```
+
+## Key Language Features
+
+This example demonstrates:
+
+- **Variable reassignment**: Updating `a`, `b`, and `i` within the loop
+- **Temporary variables**: Using `tmp` to hold intermediate values
+- **While loops**: Iterating a specific number of times
+- **Arithmetic operations**: Addition with `a + b`
+- **Comparison operators**: Loop condition with `i < n`
+
+## Next Steps
+
+- Learn about [variables](/language/variables) and variable reassignment
+- Explore [control flow](/language/control-flow) patterns
+- Try the [factorial example](/examples/factorial) for comparison

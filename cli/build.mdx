@@ -1,0 +1,97 @@
+---
+title: volette build
+description: Compile Volette programs into assembly
+---
+
+The `build` command compiles a Volette source file into assembly output.
+
+## Usage
+
+```bash
+volette build <file> [OPTIONS]
+```
+
+**Alias:** `b`
+
+## Parameters
+
+<ParamField path="file" type="string" required>
+  Path to the Volette source file to compile. Typically uses the `.vt` extension.
+</ParamField>
+
+## Options
+
+<ParamField path="-o, --output" type="string">
+  Output assembly file path. If not specified, defaults to `output.s`.
+</ParamField>
+
+## Examples
+
+### Basic Usage
+
+Compile a Volette file with default output:
+
+```bash
+volette build main.vt
+```
+
+This will generate `output.s` in the current directory.
+
+**Terminal Output:**
+```bash
+$ volette build main.vt
+Compiling main.vt...
+Successfully compiled to output.s
+```
+
+### Custom Output Path
+
+Specify a custom output file:
+
+```bash
+volette build main.vt -o program.s
+```
+
+**Terminal Output:**
+```bash
+$ volette build main.vt -o program.s
+Compiling main.vt...
+Successfully compiled to program.s
+```
+
+### Using Long Form
+
+Use the long form of the output flag:
+
+```bash
+volette build src/app.vt --output build/app.s
+```
+
+### Using Alias
+
+Use the `b` alias for shorter commands:
+
+```bash
+volette b main.vt -o out.s
+```
+
+## Output Format
+
+The build command generates assembly code in `.s` format, which can be assembled and linked using standard tools like:
+
+```bash
+# Assemble the output
+as output.s -o output.o
+
+# Link to create executable
+ld output.o -o program
+```
+
+## Error Handling
+
+If the source file doesn't exist or contains syntax errors, the compiler will display detailed error messages:
+
+```bash
+$ volette build missing.vt
+Error: File not found: missing.vt
+```

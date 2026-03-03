@@ -1,0 +1,372 @@
+---
+title: Structs
+description: Learn how to define and use structs in Volette, including named structs, anonymous structs, and field access
+---
+
+Structs in Volette allow you to create custom composite data types with named fields. They're fundamental for organizing related data together.
+
+## Struct Definitions
+
+Structs are defined using the `struct` keyword, followed by a name and field definitions in braces:
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+```
+
+### Syntax Structure
+
+```volette
+struct StructName {
+    field1: Type1,
+    field2: Type2,
+    field3: Type3
+}
+```
+
+<Info>
+Fields are separated by commas. The trailing comma after the last field is optional.
+</Info>
+
+## Field Definitions
+
+Each field in a struct has a name and a type:
+
+```volette
+struct Person {
+    name: i32,
+    age: i32,
+    active: bool
+}
+```
+
+### Multiple Field Types
+
+```volette
+struct Entity {
+    id: i32,
+    health: f32,
+    max_health: f32,
+    is_alive: bool,
+    level: i32
+}
+```
+
+### With Various Primitive Types
+
+```volette
+struct GameState {
+    score: i64,
+    time_elapsed: f64,
+    player_x: f32,
+    player_y: f32,
+    is_paused: bool,
+    lives: i32
+}
+```
+
+## Anonymous Structs
+
+Volette supports anonymous (unnamed) struct types defined inline within other structs:
+
+```volette
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    }
+}
+```
+
+In this example, the `position` field has an anonymous struct type with `x` and `y` fields.
+
+### Nested Anonymous Structs
+
+```volette
+struct Player {
+    id: i32,
+    transform: {
+        position: {
+            x: f32,
+            y: f32,
+            z: f32
+        },
+        rotation: {
+            pitch: f32,
+            yaw: f32,
+            roll: f32
+        }
+    },
+    health: f32
+}
+```
+
+<Note>
+Anonymous structs are useful for grouping related fields without creating a separate named type.
+</Note>
+
+## Field Types
+
+Struct fields can be any valid Volette type:
+
+### Primitive Type Fields
+
+```volette
+struct Vector3 {
+    x: f32,
+    y: f32,
+    z: f32
+}
+```
+
+### Custom Type Fields
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+
+struct Line {
+    start: Point,
+    end: Point
+}
+```
+
+### Pointer Fields
+
+```volette
+struct Node {
+    value: i32,
+    next: *Node  // Pointer to another Node
+}
+```
+
+### Mixed Field Types
+
+```volette
+struct ComplexType {
+    id: i32,
+    data: f64,
+    flag: bool,
+    reference: *i32,
+    nested: {
+        a: i32,
+        b: i32
+    }
+}
+```
+
+## Field Access
+
+Access struct fields using the dot (`.`) operator:
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+
+fn distance_from_origin(p: Point): f32 {
+    // Access fields with dot notation
+    let x_squared = p.x * p.x
+    let y_squared = p.y * p.y
+    // Return would need sqrt, simplified for example
+    return x_squared + y_squared
+}
+```
+
+### Nested Field Access
+
+For anonymous structs, chain the dot operator:
+
+```volette
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    }
+}
+
+fn get_x(e: Entity): f32 {
+    return e.position.x  // Nested access
+}
+
+fn get_y(e: Entity): f32 {
+    return e.position.y
+}
+```
+
+## Using Structs in Functions
+
+### Struct Parameters
+
+```volette
+struct Rectangle {
+    width: f32,
+    height: f32
+}
+
+fn area(rect: Rectangle): f32 {
+    return rect.width * rect.height
+}
+
+fn perimeter(rect: Rectangle): f32 {
+    return 2.0 * (rect.width + rect.height)
+}
+```
+
+### Struct Return Types
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+
+fn create_point(x: f32, y: f32): Point {
+    // Function returns a Point struct
+    // (construction syntax may vary)
+}
+
+fn translate(p: Point, dx: f32, dy: f32): Point {
+    // Return a new translated point
+}
+```
+
+## Common Patterns
+
+### 2D Point/Vector
+
+```volette
+struct Point2D {
+    x: f32,
+    y: f32
+}
+
+struct Vector2D {
+    x: f32,
+    y: f32
+}
+```
+
+### 3D Point/Vector
+
+```volette
+struct Point3D {
+    x: f32,
+    y: f32,
+    z: f32
+}
+
+struct Vector3D {
+    x: f32,
+    y: f32,
+    z: f32
+}
+```
+
+### Transform Hierarchy
+
+```volette
+struct Transform {
+    position: {
+        x: f32,
+        y: f32,
+        z: f32
+    },
+    rotation: {
+        x: f32,
+        y: f32,
+        z: f32
+    },
+    scale: {
+        x: f32,
+        y: f32,
+        z: f32
+    }
+}
+```
+
+### Entity-Component Pattern
+
+```volette
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    },
+    velocity: {
+        x: f32,
+        y: f32
+    },
+    health: f32,
+    is_active: bool
+}
+```
+
+### Linked Data Structure
+
+```volette
+struct LinkedNode {
+    value: i32,
+    next: *LinkedNode  // Pointer to next node
+}
+```
+
+## Struct Composition
+
+You can compose complex types by using structs as fields:
+
+```volette
+struct Color {
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8
+}
+
+struct Sprite {
+    position: {
+        x: f32,
+        y: f32
+    },
+    color: Color,
+    size: {
+        width: f32,
+        height: f32
+    }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Descriptive Names" icon="signature">
+    Use clear, descriptive names for both structs and fields
+  </Card>
+  <Card title="Logical Grouping" icon="object-group">
+    Group related data together using anonymous structs
+  </Card>
+  <Card title="Type Safety" icon="shield">
+    Use structs to enforce type safety and data organization
+  </Card>
+  <Card title="Composition" icon="puzzle-piece">
+    Build complex types by composing simpler structs
+  </Card>
+</CardGroup>
+
+## Summary
+
+- Structs are defined with the `struct` keyword
+- Fields have names and explicit types
+- Anonymous structs can be defined inline
+- Access fields with the dot (`.`) operator
+- Structs can contain any valid type, including other structs
+- Chain dot operators for nested field access
+- Use structs for parameters and return types

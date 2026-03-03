@@ -1,0 +1,175 @@
+---
+title: Types
+description: Comprehensive guide to Volette's type system including primitives, custom types, structs, and pointers
+---
+
+Volette is a statically-typed language with a powerful type system that supports primitive types, custom types, structs, and pointers.
+
+## Primitive Types
+
+Volette provides a comprehensive set of primitive types:
+
+### Integer Types
+
+<CodeGroup>
+```volette Signed Integers
+let a: i8 = -128
+let b: i16 = -32768
+let c: i32 = -2147483648
+let d: i64 = -9223372036854775808
+let e: isize = -100  // Platform-dependent size
+```
+
+```volette Unsigned Integers
+let a: u8 = 255
+let b: u16 = 65535
+let c: u32 = 4294967295
+let d: u64 = 18446744073709551615
+let e: usize = 100  // Platform-dependent size
+```
+</CodeGroup>
+
+<Info>
+`isize` and `usize` are platform-dependent integer types. On 64-bit systems, they're equivalent to `i64` and `u64` respectively.
+</Info>
+
+### Floating-Point Types
+
+```volette
+let pi: f32 = 3.14159
+let e: f64 = 2.718281828459045
+```
+
+- **`f32`** - 32-bit floating-point number
+- **`f64`** - 64-bit floating-point number (double precision)
+
+### Boolean Type
+
+```volette
+let is_active: bool = true
+let is_complete: bool = false
+```
+
+Boolean values are either `true` or `false`.
+
+### Unit Type
+
+The `unit` type represents the absence of a value, similar to `void` in other languages. Its value is represented as `{}`.
+
+```volette
+fn get_unit(): unit {
+    {}
+}
+
+fn returns_nothing(): unit {
+    let x: i32 = 10
+    let y: i32 = 20
+    {}
+}
+
+fn test_unit(): i32 {
+    let u: unit = {}
+    let v: unit = get_unit()
+    42
+}
+```
+
+<Note>
+The `unit` type is useful for functions that perform side effects but don't return meaningful values.
+</Note>
+
+## Custom Types
+
+You can reference custom types by their identifier name. These are typically struct types defined with the `struct` keyword.
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+
+fn create_point(): Point {
+    // Custom type usage
+}
+```
+
+## Struct Types
+
+Structs allow you to create composite data types with named fields.
+
+### Named Structs
+
+```volette
+struct Point {
+    x: f32,
+    y: f32
+}
+
+struct Person {
+    name: i32,
+    age: i32,
+    active: bool
+}
+```
+
+### Anonymous Structs
+
+Volette supports anonymous struct types inline:
+
+```volette
+struct Entity {
+    id: i32,
+    position: {
+        x: f32,
+        y: f32
+    }
+}
+```
+
+In this example, the `position` field has an anonymous struct type embedded directly.
+
+## Pointer Types
+
+Pointers allow you to reference memory addresses. A pointer type is denoted by wrapping another type.
+
+```volette
+let ptr: *i32  // Pointer to an i32
+let ptr2: *f64 // Pointer to an f64
+```
+
+<Warning>
+Pointer support is a low-level feature. Use with caution as improper pointer usage can lead to memory safety issues.
+</Warning>
+
+### Pointer Operations
+
+Pointers can be:
+- **Dereferenced** using the `@` operator to access the value
+- **Created** using the `&` operator to get the address of a variable
+
+```volette
+let x = 42
+let ptr = &x    // Get address of x
+let val = @ptr  // Dereference to get value
+```
+
+## Type Coercion
+
+Pointers are internally coerced to `usize` when necessary for arithmetic operations and comparisons.
+
+## Summary
+
+<CardGroup cols={2}>
+  <Card title="Primitive Types" icon="hashtag">
+    Integers (i8-i64, u8-u64, isize, usize), floats (f32, f64), bool, unit
+  </Card>
+  <Card title="Custom Types" icon="cube">
+    User-defined struct types referenced by name
+  </Card>
+  <Card title="Struct Types" icon="layer-group">
+    Named and anonymous structs with typed fields
+  </Card>
+  <Card title="Pointer Types" icon="location-arrow">
+    References to memory addresses of other types
+  </Card>
+</CardGroup>

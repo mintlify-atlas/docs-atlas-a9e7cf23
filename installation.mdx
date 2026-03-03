@@ -1,0 +1,136 @@
+---
+title: Installation
+description: Install the Volette compiler and set up your development environment
+---
+
+# Installing Volette
+
+Volette is distributed as a Rust project that you build from source. Follow these steps to install the Volette compiler on your system.
+
+<Warning>
+Volette currently only supports **aarch64 macOS**. Make sure you're running on Apple Silicon (M1, M2, M3, etc.) before proceeding.
+</Warning>
+
+## Prerequisites
+
+Before installing Volette, ensure you have the following tools installed:
+
+<Steps>
+  <Step title="Install Rust">
+    Volette is written in Rust and requires the Rust toolchain to build.
+    
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
+    
+    After installation, restart your terminal or run:
+    
+    ```bash
+    source $HOME/.cargo/env
+    ```
+    
+    Verify the installation:
+    
+    ```bash
+    rustc --version
+    cargo --version
+    ```
+  </Step>
+  
+  <Step title="Install Build Tools">
+    You'll need the LLVM assembler and linker to work with compiled Volette code.
+    
+    On macOS, install the Xcode Command Line Tools:
+    
+    ```bash
+    xcode-select --install
+    ```
+    
+    Verify you have the assembler:
+    
+    ```bash
+    as --version
+    ```
+  </Step>
+  
+  <Step title="Install C Compiler (Optional)">
+    For linking Volette code with C programs, you'll need `gcc` or `clang`.
+    
+    On macOS, this is included with Xcode Command Line Tools:
+    
+    ```bash
+    gcc --version
+    # or
+    clang --version
+    ```
+  </Step>
+</Steps>
+
+## Building Volette from Source
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/your-org/volette.git
+    cd volette
+    ```
+  </Step>
+  
+  <Step title="Build the Compiler">
+    Use Cargo to build the Volette compiler:
+    
+    ```bash
+    cargo build --release
+    ```
+    
+    This will compile Volette and all its dependencies. The first build may take a few minutes.
+  </Step>
+  
+  <Step title="Verify Installation">
+    Test that Volette is working:
+    
+    ```bash
+    cargo run -- build --help
+    ```
+    
+    You should see the help output for the `build` command:
+    
+    ```
+    build <file> | Build a volette program into assembly
+    
+    Usage: volette build [OPTIONS] <FILE>
+    
+    Arguments:
+      <FILE>  
+    
+    Options:
+      -o, --output <OUTPUT>  Output assembly file path
+      -h, --help            Print help
+    ```
+  </Step>
+</Steps>
+
+## Optional: Add to PATH
+
+For convenience, you can add the compiled binary to your PATH:
+
+```bash
+# From the volette directory
+cp target/release/volette /usr/local/bin/
+```
+
+Then you can use `volette` directly instead of `cargo run --`:
+
+```bash
+volette build program.vt -o program.s
+```
+
+<Note>
+If you don't add Volette to your PATH, you'll need to use `cargo run --` before each command throughout this documentation.
+</Note>
+
+## Next Steps
+
+<Card title="Quickstart Guide" icon="bolt" href="/quickstart">
+  Now that you have Volette installed, learn how to compile your first program
+</Card>

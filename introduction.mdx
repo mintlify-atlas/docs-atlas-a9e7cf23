@@ -1,0 +1,94 @@
+---
+title: Introduction to Volette
+description: A modern expression-oriented programming language that compiles to native code
+---
+
+# Welcome to Volette
+
+Volette is an **expression-oriented, statically-typed programming language** that compiles to native code. It's designed to be simple and straightforward, with a focus on a powerful type system.
+
+Built in Rust, Volette uses a heavily modified [Citadel](https://github.com/Isible/citadel) backend to generate efficient assembly code.
+
+<Note>
+Currently, Volette only supports **aarch64 macOS**. Support for additional platforms is planned for future releases.
+</Note>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Expression-Oriented" icon="code">
+    Everything is an expression in Volette. Write concise, functional-style code with natural return values.
+  </Card>
+  
+  <Card title="Static Typing" icon="shield-check">
+    Catch errors at compile-time with a robust type system including integers, floats, booleans, structs, and more.
+  </Card>
+  
+  <Card title="Native Performance" icon="rocket">
+    Compiles directly to assembly for maximum performance with zero runtime overhead.
+  </Card>
+  
+  <Card title="Rust-Like Syntax" icon="terminal">
+    Familiar syntax for developers coming from Rust, with optional semicolons and clean control flow.
+  </Card>
+</CardGroup>
+
+## Quick Example
+
+Here's a simple Volette program that calculates the Fibonacci sequence:
+
+```volette
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+## Get Started
+
+<CardGroup cols={3}>
+  <Card 
+    title="Installation" 
+    icon="download" 
+    href="/installation"
+  >
+    Install the Volette compiler and set up your development environment
+  </Card>
+  
+  <Card 
+    title="Quickstart" 
+    icon="bolt" 
+    href="/quickstart"
+  >
+    Compile your first Volette program in minutes
+  </Card>
+  
+  <Card 
+    title="Language Guide" 
+    icon="book" 
+    href="/language/types"
+  >
+    Learn about Volette's syntax, types, and features
+  </Card>
+</CardGroup>
+
+## Why Volette?
+
+Volette combines the best of modern language design:
+
+- **Simple & Clean**: Optional semicolons, expression-based syntax, and minimal boilerplate
+- **Type Safe**: Comprehensive type system with type inference where you need it
+- **Fast Compilation**: Written in Rust for quick compile times
+- **Native Code**: Direct compilation to assembly for optimal runtime performance
+
+<Note>
+Volette is in active development. APIs and language features may change as the project evolves.
+</Note>

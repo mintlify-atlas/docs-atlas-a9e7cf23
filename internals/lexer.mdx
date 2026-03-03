@@ -1,0 +1,270 @@
+---
+title: Lexer
+description: Tokenization and lexical analysis in the Volette compiler
+---
+
+The lexer is the first phase of the Volette compiler, responsible for converting raw source text into a stream of tokens. It performs lexical analysis by scanning characters and grouping them into meaningful units.
+
+## Overview
+
+The lexer is implemented in `src/compiler/lexer/mod.rs` and uses a stateful, streaming approach to tokenization. It maintains a sliding window of characters and processes them based on the current lexer state.
+
+### Lexer Structure
+
+The main `Lexer` struct contains:
+
+```rust
+pub struct Lexer<'a> {
+    pub tokens: Vec<Token>,           // Output token stream
+    pub state: LexerState,            // Current lexer state
+    pub errors: ReportCollection,     // Lexical errors
+    pub cursor: Cursor,               // Current position in source
+    pub interner: &'a mut StringInterner, // String interning
+    pub newline: bool,                // Newline tracking
+    pub current_chars: VecDeque<((usize, usize), char)>, // Character buffer
+}
+```
+
+## Lexer States
+
+The lexer uses a finite state machine with these states:
+
+- **Normal** - Default state for general parsing
+- **Number** - Parsing numeric literals (integers and floats)
+- **String** - Parsing string literals (not yet implemented)
+- **Comment** - Single-line comment (`//`)
+- **MultilineComment** - Multi-line comment (`/* */`)
+- **End** - End of file
+
+## Tokenization Process
+
+The `tokenize()` method processes the input character by character:
+
+1. Receives a `Vec<char>` of source characters
+2. Adds null terminators for lookahead
+3. Iterates through characters with `next()` method
+4. Maintains current and next character for lookahead
+
+### Character Processing
+
+The `next()` method (lexer/mod.rs:73-208) handles:
+
+- **Line/column tracking** - Updates cursor position on newlines
+- **Whitespace stripping** - Removes leading whitespace from character buffer
+- **Character validation** - Ensures only allowed ASCII characters
+- **State-based dispatch** - Routes to appropriate handler based on state
+
+### Valid Characters
+
+The lexer restricts input to valid ASCII characters:
+
+```rust
+fn is_allowed_char(&self) -> bool {
+    let disallowed_chars = ['`', '\'', '"', '?', '\\'];
+    !disallowed_chars.contains(self) && self.is_ascii()
+}
+```
+
+## Keywords
+
+Implemented in `lexer/keywords.rs:24-74`. The lexer recognizes these keywords:
+
+- Control flow: `if`, `else`, `while`, `break`, `continue`, `return`
+- Declarations: `fn`, `struct`, `let`, `const`, `use`, `pub`
+- Memory: `alloc`, `free`, `local`
+- Operators: `as`, `in`
+- Special: `self`
+
+Keyword matching uses exact string comparison with boundary checking to avoid matching prefixes (e.g., `return` vs `returns`).
+
+## Numeric Literals
+
+Implemented in `lexer/numbers.rs`. Supports multiple number formats:
+
+### Integer Literals
+
+- **Decimal** - `123`, `1_000_000`
+- **Hexadecimal** - `0xFF`, `0x1A2B`
+- **Binary** - `0b1010`, `0b1111_0000`
+- **Octal** - `0o755`, `0o644`
+
+Underscores are allowed as digit separators and are filtered during parsing.
+
+### Float Literals
+
+- Only decimal notation supported: `3.14`, `1.0`, `0.5`
+- Base prefix detection: checks if `0x`, `0b`, or `0o` prefix exists
+- Error on non-decimal floats: `0x1.5` generates lexical error
+
+### Number State Machine
+
+The lexer tracks:
+- Whether the number is a float (contains `.`)
+- The number base (decimal, hex, binary, octal)
+
+Transitions in `lex_number()` (numbers.rs:16-52):
+1. Detects base prefix after leading `0`
+2. Validates digits match the base
+3. Handles decimal point for floats
+4. Emits token when invalid character encountered
+
+## Punctuation
+
+Implemented in `lexer/punctuation.rs`. Handles operators and delimiters through pattern matching:
+
+### Multi-character Operators
+
+The lexer matches longest operators first:
+- Three-character: `<<=`, `>>=`, `**=`
+- Two-character: `==`, `!=`, `<=`, `>=`, `&&`, `||`, `->`, `=>`
+- Single-character: `+`, `-`, `*`, `/`, `(`, `)`, `{`, `}`, etc.
+
+Pattern matching requires minimum character lookahead (`min_chars`) to avoid premature emission.
+
+### Greedy Matching
+
+The `check_punctuation()` method (punctuation.rs:75-94):
+1. Iterates through patterns in precedence order
+2. Checks if buffer has enough characters
+3. Matches exact byte sequence
+4. Emits token and drains matched characters
+
+## Type Literals
+
+Primitive type keywords are recognized as distinct tokens:
+
+- Signed integers: `i8`, `i16`, `i32`, `i64`, `isize`
+- Unsigned integers: `u8`, `u16`, `u32`, `u64`, `usize`
+- Floating-point: `f32`, `f64`
+- Other: `bool`, `unit` (represented as `()`)
+
+## Identifiers
+
+Valid identifier characters (lexer/mod.rs:221-223):
+
+```rust
+fn is_valid_ident_char(&self) -> bool {
+    self.is_alphanumeric() || *self == '_' || *self == '$' || *self == '#'
+}
+```
+
+Identifiers are extracted when:
+- A non-identifier character is encountered
+- The buffer contains valid identifier characters
+- The identifier doesn't match a keyword or type literal
+
+## Boolean Literals
+
+The lexer recognizes `true` and `false` as boolean literals and emits `BoolLiteral` tokens.
+
+## Comments
+
+Two comment styles supported:
+
+### Single-line Comments
+
+```volette
+// This is a comment
+```
+
+Triggered by `//` sequence. Lexer stays in `Comment` state until newline.
+
+### Multi-line Comments
+
+```volette
+/* This is a
+   multi-line comment */
+```
+
+Triggered by `/*` sequence, terminated by `*/`. Lexer tracks `*` characters to detect closing sequence.
+
+## String Interning
+
+The lexer uses `string_interner` crate for efficient string storage:
+
+- Identifiers are interned as `SymbolUsize`
+- Each unique string is stored once
+- Tokens reference symbols instead of duplicating strings
+- Reduces memory usage and enables fast equality checks
+
+## Token Output
+
+The lexer produces a `Vec<Token>` where each token contains:
+
+```rust
+pub struct Token {
+    pub kind: TokenKind,  // Type of token
+    pub span: Span,       // Source location
+}
+```
+
+### Token Kinds
+
+- `IntLiteral(i64)` - Integer literal value
+- `FloatLiteral(f64)` - Float literal value
+- `BoolLiteral(bool)` - Boolean literal value
+- `StringLiteral(SymbolUsize)` - String literal (not yet implemented)
+- `Keyword(Keyword)` - Keyword variant
+- `TypeLiteral(PrimitiveTypes)` - Primitive type name
+- `Punctuation(Punctuation)` - Operator or delimiter
+- `Identifier(SymbolUsize)` - Identifier symbol
+- `Eof` - End of file marker
+- `Start` - Beginning marker (always first token)
+
+### Span Information
+
+Each token tracks its source location:
+
+```rust
+pub struct Span {
+    pub file: SymbolUsize,      // File path
+    pub start: (usize, usize),  // (line, col)
+    pub end: (usize, usize),    // (line, col)
+}
+```
+
+Spans enable precise error reporting with file locations.
+
+## Error Handling
+
+Lexical errors are collected in `ReportCollection`:
+
+- Invalid characters generate errors but don't stop lexing
+- Invalid number formats are reported with helpful messages
+- Errors include span information for precise error messages
+- Multiple errors can be collected in a single pass
+
+## Example Token Stream
+
+For the input:
+
+```volette
+fn add(x: i32, y: i32) -> i32 {
+    x + y
+}
+```
+
+The lexer produces:
+
+```
+Start
+Keyword(Fn)
+Identifier(add)
+Punctuation(OpenParen)
+Identifier(x)
+Punctuation(Colon)
+TypeLiteral(I32)
+Punctuation(Comma)
+Identifier(y)
+Punctuation(Colon)
+TypeLiteral(I32)
+Punctuation(CloseParen)
+Punctuation(Arrow)
+TypeLiteral(I32)
+Punctuation(OpenBrace)
+Identifier(x)
+Punctuation(Plus)
+Identifier(y)
+Punctuation(CloseBrace)
+Eof
+```

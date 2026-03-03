@@ -1,0 +1,270 @@
+---
+title: Functions
+description: Complete guide to defining and using functions in Volette, including parameters, return types, and expression-oriented syntax
+---
+
+Functions are the primary building blocks of Volette programs. They are declared using the `fn` keyword and support explicit return types, parameters, and expression-oriented returns.
+
+## Function Declaration
+
+Functions are declared with the `fn` keyword, followed by the function name, parameters in parentheses, a return type, and a body:
+
+```volette
+fn add(a: i32, b: i32): i32 {
+    return a + b
+}
+```
+
+### Syntax Structure
+
+```volette
+fn function_name(param1: Type1, param2: Type2): ReturnType {
+    // function body
+}
+```
+
+## Parameters
+
+Functions can accept zero or more parameters. Each parameter requires a type annotation:
+
+### No Parameters
+
+```volette
+fn get_constant(): i32 {
+    return 42
+}
+```
+
+### Single Parameter
+
+```volette
+fn square(x: i32): i32 {
+    return x * x
+}
+```
+
+### Multiple Parameters
+
+```volette
+fn multiply(x: i32, y: i32): i32 {
+    return x * y
+}
+
+fn calculate(a: i32, b: i32, c: f32): f64 {
+    return (a + b) as f64 * c as f64
+}
+```
+
+<Info>
+All function parameters require explicit type annotations. Type inference is not available for parameters.
+</Info>
+
+## Return Types
+
+Every function must specify its return type after the colon:
+
+```volette
+fn get_number(): i32 {
+    return 100
+}
+
+fn get_pi(): f64 {
+    return 3.14159
+}
+
+fn is_valid(): bool {
+    return true
+}
+```
+
+### Unit Return Type
+
+Functions that don't return a meaningful value use the `unit` type:
+
+```volette
+fn do_nothing(): unit {
+    {}
+}
+
+fn returns_unit(): unit {
+    let x: i32 = 10
+    let y: i32 = 20
+    {}
+}
+```
+
+## Return Statement
+
+Use the `return` keyword to explicitly return a value:
+
+```volette
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i
+        i += 1
+    }
+    return result
+}
+```
+
+## Expression-Oriented Returns
+
+Volette is expression-oriented, meaning the last expression in a function automatically becomes the return value:
+
+<CodeGroup>
+```volette Explicit Return
+fn add(a: i32, b: i32): i32 {
+    return a + b
+}
+```
+
+```volette Implicit Return
+fn add(a: i32, b: i32): i32 {
+    a + b
+}
+```
+</CodeGroup>
+
+Both versions are equivalent. The implicit return style is more concise.
+
+### Expression Returns in Action
+
+```volette
+fn test_unit(): i32 {
+    let u: unit = {}
+    let v: unit = get_unit()
+    42  // This value is automatically returned
+}
+
+fn block_value(): i32 {
+    let a = 10
+    let x = a + 20
+    x  // Implicitly returned
+}
+```
+
+<Warning>
+Omit the semicolon on the last expression if you want it to be the return value. Adding a semicolon makes it a statement, not an expression.
+</Warning>
+
+## Function Examples
+
+### Simple Arithmetic
+
+```volette
+fn add(a: i32, b: i32): i32 {
+    return a + b
+}
+
+fn multiply(x: i32, y: i32): i32 {
+    return x * y
+}
+```
+
+### Fibonacci Sequence
+
+```volette
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+### Factorial Calculation
+
+```volette
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i
+        i += 1
+    }
+    return result
+}
+```
+
+### Type Conversion
+
+```volette
+fn convert_to_float(value: i32): f32 {
+    let result: f32 = value as f32
+    return result
+}
+```
+
+### Negation
+
+```volette
+fn negation(x: i32): i32 {
+    return -x
+}
+```
+
+## Function Calls
+
+Call functions by using their name followed by arguments in parentheses:
+
+```volette
+fn main(): i32 {
+    let sum = add(10, 20)
+    let product = multiply(5, 6)
+    let fib10 = fib(10)
+    return sum + product + fib10
+}
+```
+
+<Note>
+Function arguments must match the parameter types exactly. Use type casting with `as` if needed.
+</Note>
+
+## Nested Function Calls
+
+Functions can call other functions:
+
+```volette
+fn double(x: i32): i32 {
+    return x * 2
+}
+
+fn quadruple(x: i32): i32 {
+    return double(double(x))
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Clear Naming" icon="signature">
+    Use descriptive function names that indicate what the function does
+  </Card>
+  <Card title="Single Responsibility" icon="bullseye">
+    Each function should do one thing well
+  </Card>
+  <Card title="Type Annotations" icon="tag">
+    Always specify parameter and return types explicitly
+  </Card>
+  <Card title="Expression Returns" icon="arrow-turn-down-left">
+    Use implicit returns for concise, expression-oriented code
+  </Card>
+</CardGroup>
+
+## Summary
+
+- Functions are declared with `fn` keyword
+- All parameters require type annotations
+- Return types are mandatory
+- Use `return` for explicit returns
+- Last expression is implicitly returned
+- Semicolons are optional
+- Functions can call other functions

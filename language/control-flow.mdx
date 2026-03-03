@@ -1,0 +1,346 @@
+---
+title: Control Flow
+description: Master control flow in Volette with if expressions, while loops, break, and continue statements
+---
+
+Volette provides control flow constructs that allow you to conditionally execute code and create loops. All control flow constructs in Volette are expression-oriented.
+
+## If Expressions
+
+If expressions allow conditional execution based on boolean conditions. Unlike statements in other languages, if constructs in Volette are expressions that return values.
+
+### Basic If Expression
+
+```volette
+fn check_positive(x: i32): bool {
+    if x > 0 {
+        return true
+    } else {
+        return false
+    }
+}
+```
+
+### If as Expression
+
+Since if is an expression, you can assign its result to a variable:
+
+```volette
+fn max(a: i32, b: i32): i32 {
+    let result = if a > b { a } else { b }
+    return result
+}
+
+// Or more concisely:
+fn max_concise(a: i32, b: i32): i32 {
+    if a > b { a } else { b }
+}
+```
+
+<Info>
+When using if as an expression, both branches must return the same type.
+</Info>
+
+### If Without Else
+
+```volette
+fn check_value(x: i32): i32 {
+    if x > 100 {
+        return x
+    }
+    return 0
+}
+```
+
+### Nested If Expressions
+
+```volette
+fn classify(x: i32): i32 {
+    if x > 0 {
+        if x > 100 {
+            return 2
+        } else {
+            return 1
+        }
+    } else {
+        return 0
+    }
+}
+```
+
+## While Loops
+
+While loops repeatedly execute a block of code as long as a condition is true.
+
+### Basic While Loop
+
+```volette
+fn count_to_ten(): i32 {
+    let i = 0
+    while i < 10 {
+        i += 1
+    }
+    return i
+}
+```
+
+### While with Condition
+
+```volette
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i
+        i += 1
+    }
+    return result
+}
+```
+
+### Complex While Loop
+
+```volette
+fn fib(n: i32): i32 {
+    let a = 0
+    let b = 1
+    let i = 0
+    while i < n {
+        let tmp = a + b
+        a = b
+        b = tmp
+        i += 1
+    }
+    return a
+}
+```
+
+## Break Statement
+
+The `break` keyword immediately exits the innermost loop:
+
+```volette
+fn find_limit(): i32 {
+    let count = 0
+    while count < 100 {
+        count += 1
+        if count >= 15 {
+            break
+        }
+    }
+    return count  // Returns 15
+}
+```
+
+### Break with Condition
+
+```volette
+fn w(): i32 {
+    let count = 0
+    let sum = 0
+
+    while count < 20 {
+        count += 1
+
+        if count % 3 == 0 {
+            continue
+        }
+
+        if count >= 15 {
+            break
+        }
+
+        sum += count
+    }
+
+    return count
+}
+```
+
+<Note>
+The `break` statement only exits the loop it's directly inside. It doesn't affect outer loops in nested structures.
+</Note>
+
+## Continue Statement
+
+The `continue` keyword skips the rest of the current iteration and moves to the next one:
+
+```volette
+fn skip_multiples_of_three(): i32 {
+    let count = 0
+    let sum = 0
+    
+    while count < 10 {
+        count += 1
+        
+        if count % 3 == 0 {
+            continue  // Skip multiples of 3
+        }
+        
+        sum += count
+    }
+    
+    return sum
+}
+```
+
+### Continue with Multiple Conditions
+
+```volette
+fn conditional_sum(): i32 {
+    let i = 0
+    let sum = 0
+    
+    while i < 20 {
+        i += 1
+        
+        if i % 2 == 0 {
+            continue  // Skip even numbers
+        }
+        
+        if i > 15 {
+            continue  // Skip numbers greater than 15
+        }
+        
+        sum += i
+    }
+    
+    return sum
+}
+```
+
+## Combining Control Flow
+
+### If Inside While
+
+```volette
+fn selective_sum(limit: i32): i32 {
+    let i = 0
+    let sum = 0
+    
+    while i < limit {
+        i += 1
+        
+        if i % 2 == 0 {
+            sum += i  // Only add even numbers
+        }
+    }
+    
+    return sum
+}
+```
+
+### Break and Continue Together
+
+```volette
+fn complex_loop(): i32 {
+    let count = 0
+    let sum = 0
+
+    while count < 20 {
+        count += 1
+
+        if count % 3 == 0 {
+            continue  // Skip multiples of 3
+        }
+
+        if count >= 15 {
+            break  // Stop at 15
+        }
+
+        sum += count
+    }
+
+    return count
+}
+```
+
+### Nested While Loops
+
+```volette
+fn nested_loops(): i32 {
+    let i = 0
+    let sum = 0
+    
+    while i < 5 {
+        let j = 0
+        while j < 5 {
+            sum += i * j
+            j += 1
+        }
+        i += 1
+    }
+    
+    return sum
+}
+```
+
+## Common Patterns
+
+### Counter Pattern
+
+```volette
+fn count_pattern(): i32 {
+    let count = 0
+    while count < 100 {
+        count += 1
+        // Do something with count
+    }
+    return count
+}
+```
+
+### Accumulator Pattern
+
+```volette
+fn accumulate(n: i32): i32 {
+    let sum = 0
+    let i = 1
+    while i <= n {
+        sum += i
+        i += 1
+    }
+    return sum
+}
+```
+
+### Early Exit Pattern
+
+```volette
+fn find_value(target: i32): bool {
+    let i = 0
+    while i < 100 {
+        if i == target {
+            return true  // Early exit
+        }
+        i += 1
+    }
+    return false
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use If Expressions" icon="code-branch">
+    Leverage if as expressions for concise, functional-style code
+  </Card>
+  <Card title="Avoid Infinite Loops" icon="circle-exclamation">
+    Always ensure while loop conditions eventually become false
+  </Card>
+  <Card title="Clear Break Conditions" icon="hand">
+    Make loop exit conditions explicit and easy to understand
+  </Card>
+  <Card title="Minimal Nesting" icon="layer-group">
+    Keep nesting levels shallow for better readability
+  </Card>
+</CardGroup>
+
+## Summary
+
+- **If expressions** allow conditional execution and return values
+- **While loops** repeat code while a condition is true
+- **Break** immediately exits a loop
+- **Continue** skips to the next iteration
+- All control flow constructs can be nested and combined
+- If expressions can be used like ternary operators in other languages

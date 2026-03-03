@@ -1,0 +1,434 @@
+---
+title: Operators
+description: Complete reference for all Volette operators including arithmetic, comparison, logical, assignment, and type casting
+---
+
+Volette provides a comprehensive set of operators for performing arithmetic, comparisons, logical operations, assignments, and type conversions.
+
+## Arithmetic Operators
+
+Arithmetic operators perform mathematical calculations on numeric types.
+
+### Basic Arithmetic
+
+<CodeGroup>
+```volette Addition
+fn add(a: i32, b: i32): i32 {
+    return a + b
+}
+```
+
+```volette Subtraction
+fn subtract(a: i32, b: i32): i32 {
+    return a - b
+}
+```
+
+```volette Multiplication
+fn multiply(x: i32, y: i32): i32 {
+    return x * y
+}
+```
+
+```volette Division
+fn divide(a: i32, b: i32): i32 {
+    return a / b
+}
+```
+</CodeGroup>
+
+### Modulo
+
+```volette
+fn remainder(a: i32, b: i32): i32 {
+    return a % b
+}
+
+fn is_even(n: i32): bool {
+    return n % 2 == 0
+}
+```
+
+### Power
+
+```volette
+fn power(base: i32, exp: i32): i32 {
+    return base ** exp
+}
+```
+
+### Operator Summary
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `+` | Addition | `a + b` |
+| `-` | Subtraction | `a - b` |
+| `*` | Multiplication | `a * b` |
+| `/` | Division | `a / b` |
+| `%` | Modulo (remainder) | `a % b` |
+| `**` | Power | `a ** b` |
+
+<Info>
+Arithmetic operators work with both integer and floating-point types.
+</Info>
+
+## Comparison Operators
+
+Comparison operators compare two values and return a boolean result.
+
+### Equality and Inequality
+
+```volette
+fn is_equal(a: i32, b: i32): bool {
+    return a == b
+}
+
+fn is_not_equal(a: i32, b: i32): bool {
+    return a != b
+}
+```
+
+### Relational Comparisons
+
+```volette
+fn is_less_than(a: i32, b: i32): bool {
+    return a < b
+}
+
+fn is_less_or_equal(a: i32, b: i32): bool {
+    return a <= b
+}
+
+fn is_greater_than(a: i32, b: i32): bool {
+    return a > b
+}
+
+fn is_greater_or_equal(a: i32, b: i32): bool {
+    return a >= b
+}
+```
+
+### In Control Flow
+
+```volette
+fn max(a: i32, b: i32): i32 {
+    if a > b {
+        return a
+    } else {
+        return b
+    }
+}
+
+fn clamp(value: i32, min: i32, max: i32): i32 {
+    if value < min {
+        return min
+    }
+    if value > max {
+        return max
+    }
+    return value
+}
+```
+
+### Operator Summary
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `==` | Equal to | `a == b` |
+| `!=` | Not equal to | `a != b` |
+| `<` | Less than | `a < b` |
+| `<=` | Less than or equal | `a <= b` |
+| `>` | Greater than | `a > b` |
+| `>=` | Greater than or equal | `a >= b` |
+
+## Logical Operators
+
+Logical operators work with boolean values.
+
+### Logical AND
+
+```volette
+fn in_range(x: i32, min: i32, max: i32): bool {
+    return x >= min && x <= max
+}
+```
+
+### Logical OR
+
+```volette
+fn is_boundary(x: i32, min: i32, max: i32): bool {
+    return x == min || x == max
+}
+```
+
+### Logical NOT
+
+```volette
+fn is_not_zero(x: i32): bool {
+    return !(x == 0)
+}
+
+fn is_invalid(flag: bool): bool {
+    return !flag
+}
+```
+
+### Combined Logical Operations
+
+```volette
+fn complex_condition(a: i32, b: i32, c: bool): bool {
+    return (a > 0 && b > 0) || c
+}
+
+fn validate(x: i32, enabled: bool): bool {
+    return enabled && (x >= 0 && x <= 100)
+}
+```
+
+### Operator Summary
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `&&` | Logical AND | `a && b` |
+| `||` | Logical OR | `a || b` |
+| `!` | Logical NOT | `!a` |
+
+<Note>
+Logical operators short-circuit: `&&` stops if the left side is false, `||` stops if the left side is true.
+</Note>
+
+## Assignment Operators
+
+Assignment operators assign or modify variable values.
+
+### Simple Assignment
+
+```volette
+fn assignment_example(): i32 {
+    let x = 10
+    x = 20  // Simple reassignment
+    return x
+}
+```
+
+### Compound Assignment
+
+```volette
+fn compound_assignments(): i32 {
+    let x = 10
+    
+    x += 5   // x = x + 5  (now 15)
+    x -= 3   // x = x - 3  (now 12)
+    x *= 2   // x = x * 2  (now 24)
+    x /= 4   // x = x / 4  (now 6)
+    x %= 4   // x = x % 4  (now 2)
+    
+    return x
+}
+```
+
+### In Loops
+
+```volette
+fn factorial(n: i32): i32 {
+    let result = 1
+    let i = 1
+    while i <= n {
+        result *= i  // Compound multiplication
+        i += 1       // Increment
+    }
+    return result
+}
+
+fn countdown(start: i32): i32 {
+    let count = start
+    while count > 0 {
+        count -= 1  // Decrement
+    }
+    return count
+}
+```
+
+### Operator Summary
+
+| Operator | Description | Example | Equivalent |
+|----------|-------------|---------|------------|
+| `=` | Assignment | `x = 5` | - |
+| `+=` | Add and assign | `x += 5` | `x = x + 5` |
+| `-=` | Subtract and assign | `x -= 5` | `x = x - 5` |
+| `*=` | Multiply and assign | `x *= 5` | `x = x * 5` |
+| `/=` | Divide and assign | `x /= 5` | `x = x / 5` |
+| `%=` | Modulo and assign | `x %= 5` | `x = x % 5` |
+
+## Bitwise Operators
+
+Bitwise operators perform operations on individual bits.
+
+### Bitwise Operations
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `&` | Bitwise AND | `a & b` |
+| `|` | Bitwise OR | `a | b` |
+| `^` | Bitwise XOR | `a ^ b` |
+| `~` | Bitwise NOT | `~a` |
+| `<<` | Left shift | `a << 2` |
+| `>>` | Right shift | `a >> 2` |
+
+### Bitwise Assignment
+
+| Operator | Description | Example | Equivalent |
+|----------|-------------|---------|------------|
+| `&=` | AND and assign | `x &= 5` | `x = x & 5` |
+| `|=` | OR and assign | `x |= 5` | `x = x | 5` |
+| `^=` | XOR and assign | `x ^= 5` | `x = x ^ 5` |
+| `~=` | NOT and assign | `x ~= 5` | `x = ~x` |
+| `<<=` | Left shift and assign | `x <<= 2` | `x = x << 2` |
+| `>>=` | Right shift and assign | `x >>= 2` | `x = x >> 2` |
+
+## Unary Operators
+
+Unary operators work on a single operand.
+
+### Negation
+
+```volette
+fn negation(x: i32): i32 {
+    return -x
+}
+
+fn absolute(x: i32): i32 {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+```
+
+### Logical NOT
+
+```volette
+fn invert(flag: bool): bool {
+    return !flag
+}
+```
+
+### Pointer Operators
+
+```volette
+// Address-of operator
+let x = 42
+let ptr = &x    // Get address of x
+
+// Dereference operator
+let value = @ptr  // Get value at address
+```
+
+### Operator Summary
+
+| Operator | Description | Example |
+|----------|-------------|----------|
+| `-` | Numeric negation | `-x` |
+| `!` | Logical NOT | `!flag` |
+| `&` | Address-of | `&x` |
+| `@` | Dereference | `@ptr` |
+
+## Type Casting with `as`
+
+The `as` operator explicitly converts values between types.
+
+### Integer to Float
+
+```volette
+fn int_to_float(): f32 {
+    let a: i32 = 42
+    let b: f32 = a as f32
+    return b
+}
+```
+
+### Float to Integer
+
+```volette
+fn float_to_int(): i32 {
+    let pi: f64 = 3.14159
+    let truncated: i32 = pi as i32  // Becomes 3
+    return truncated
+}
+```
+
+### Between Integer Types
+
+```volette
+fn convert_types(a: i32, b: i8): i32 {
+    let x = a
+    let k = b
+    return x + k as i32  // Cast i8 to i32
+}
+```
+
+### In Expressions
+
+```volette
+fn mixed_arithmetic(int_val: i32, float_val: f64): f64 {
+    return int_val as f64 + float_val
+}
+
+fn calculate(a: i32, b: i32, c: f32): f64 {
+    return (a + b) as f64 * c as f64
+}
+```
+
+<Warning>
+Casting from float to integer truncates the decimal part. Casting between different-sized integers may lose data if the value doesn't fit.
+</Warning>
+
+## Operator Precedence
+
+Operators are evaluated in the following order (highest to lowest):
+
+1. Unary operators: `!`, `-`, `&`, `@`
+2. Power: `**`
+3. Multiplicative: `*`, `/`, `%`
+4. Additive: `+`, `-`
+5. Bitwise shift: `<<`, `>>`
+6. Comparison: `<`, `<=`, `>`, `>=`
+7. Equality: `==`, `!=`
+8. Bitwise AND: `&`
+9. Bitwise XOR: `^`
+10. Bitwise OR: `|`
+11. Logical AND: `&&`
+12. Logical OR: `||`
+13. Type cast: `as`
+14. Assignment: `=`, `+=`, `-=`, etc.
+
+<Info>
+Use parentheses `()` to explicitly control evaluation order and improve code clarity.
+</Info>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Parentheses" icon="parentheses">
+    Make complex expressions clear with explicit grouping
+  </Card>
+  <Card title="Explicit Casts" icon="arrows-left-right">
+    Always use `as` for type conversions, never rely on implicit conversion
+  </Card>
+  <Card title="Compound Assignment" icon="plus-equals">
+    Use `+=`, `-=`, etc. for clearer intent in modifications
+  </Card>
+  <Card title="Type Awareness" icon="check-double">
+    Be mindful of types when using arithmetic operators
+  </Card>
+</CardGroup>
+
+## Summary
+
+- **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `**`
+- **Comparison**: `==`, `!=`, `<`, `<=`, `>`, `>=`
+- **Logical**: `&&`, `||`, `!`
+- **Assignment**: `=`, `+=`, `-=`, `*=`, `/=`, `%=`
+- **Bitwise**: `&`, `|`, `^`, `~`, `<<`, `>>`
+- **Unary**: `-`, `!`, `&`, `@`
+- **Type casting**: `as` for explicit type conversion

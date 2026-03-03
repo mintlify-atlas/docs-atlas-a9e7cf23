@@ -1,0 +1,445 @@
+---
+title: Parser
+description: AST construction and expression parsing in the Volette compiler
+---
+
+The parser is the second phase of the Volette compiler, transforming the token stream from the lexer into an Abstract Syntax Tree (AST). It implements a Pratt parser for expression parsing and uses precedence climbing for operators.
+
+## Overview
+
+The parser is implemented in `src/compiler/parser/mod.rs` and creates a tree structure stored in a `generational_arena::Arena`. This allows safe, indexed references between nodes without lifetimes.
+
+### Parser Structure
+
+```rust
+pub struct Parser<'a> {
+    pub tree: Arena<Node>,            // AST node storage
+    pub interner: &'a mut StringInterner, // String interning
+    pub tokens: Vec<Token>,           // Input token stream
+    pub current_idx: usize,           // Current token position
+    pub current_token: Token,         // Current token
+    pub parse_errors: Vec<Report>,    // Parse errors
+}
+```
+
+## AST Node Structure
+
+The AST is built from `Node` structures defined in `parser/node.rs`:
+
+```rust
+pub struct Node {
+    pub span: Span,       // Source location
+    pub kind: NodeKind,   // Node type and data
+}
+
+pub enum NodeKind {
+    Root { defs: Vec<Index> },
+    Expr { kind: ExprKind, type_: Option<VType> },
+    Def { kind: DefKind },
+}
+```
+
+### Expression Kinds
+
+The `ExprKind` enum represents all expression types:
+
+- **Literals** - `Literal(Literal)` with `Int(i64)`, `Float(f64)`, `Bool(bool)`
+- **Identifiers** - `Identifier(SymbolUsize)`
+- **Binary Operations** - `BinOp { left, right, op }`
+- **Unary Operations** - `UnaryOp { op, expr }`
+- **Assignments** - `Assign { target, value }`
+- **Compound Assignments** - `CompoundAssign { target, value, op }`
+- **Let Bindings** - `LetBinding { name, type_annotation, value }`
+- **Function Calls** - `Call { func, args }`
+- **Blocks** - `Block { exprs }`
+- **Control Flow** - `If`, `While`, `Return`, `Break`, `Continue`
+- **Type Casts** - `Cast { expr, target_type }`
+- **Parenthesized** - `ParenExpr { expr }`
+
+### Definition Kinds
+
+```rust
+pub enum DefKind {
+    Function {
+        name: SymbolUsize,
+        params: Vec<(SymbolUsize, VType, Span)>,
+        body: Index,
+        return_type: VType,
+    },
+    Struct {
+        name: SymbolUsize,
+        fields: VType,
+    },
+}
+```
+
+## Parsing Process
+
+### Root Parsing
+
+The entry point is `parse()` which calls `parse_root()` (parser/mod.rs:48-88):
+
+1. Creates root node with empty definitions
+2. Advances through tokens
+3. Parses top-level definitions with `parse_def()`
+4. Collects parse errors without stopping
+5. On error, skips to next stable section (function, brace, etc.)
+6. Returns root node containing all definitions
+
+### Definition Parsing
+
+Currently supports:
+- **Function definitions** - `fn name(params) -> return_type { body }`
+- **Struct definitions** - `struct name { fields }`
+
+## Pratt Parsing
+
+The parser uses Pratt parsing (precedence climbing) for expressions, implemented in `parser/expr.rs`.
+
+### Core Algorithm
+
+The `pratt_parse_expression()` method (expr.rs:16-178):
+
+1. **Null Denotation (NUD)** - Handles prefix context
+   - Parses what appears at the start of an expression
+   - Handles literals, identifiers, keywords, prefix operators
+
+2. **Left Denotation (LED)** - Handles infix/postfix context
+   - Parses operators that follow an expression
+   - Respects operator precedence via binding power
+   - Handles associativity (left vs right)
+
+### Binding Power
+
+Defined in `parser/precedence.rs:5-23` as an ordered enum:
+
+```rust
+pub enum BindingPower {
+    None = 0,
+    Assignment = 1,      // = (right-associative)
+    LogicalOr = 2,       // ||
+    LogicalAnd = 3,      // &&
+    BitwiseOr = 4,       // |
+    BitwiseXor = 5,      // ^
+    BitwiseAnd = 6,      // &
+    Equality = 7,        // == !=
+    Comparison = 8,      // < > <= >=
+    Term = 9,            // + -
+    Factor = 10,         // * / %
+    Cast = 11,           // as
+    Unary = 12,          // Prefix - ! @ &
+    Call = 13,           // ()
+    MemberAccess = 14,   // .
+    Primary = 15,        // Literals, identifiers
+}
+```
+
+Higher numbers bind tighter. For example, `*` (Factor=10) binds tighter than `+` (Term=9), so `2 + 3 * 4` parses as `2 + (3 * 4)`.
+
+### NUD Handlers
+
+Prefix/prefix-like expressions (expr.rs:25-70):
+
+- `parse_literal_nud()` - Integer, float, boolean literals
+- `parse_identifier_nud()` - Variable references
+- `parse_let_expr_nud()` - Let bindings
+- `parse_return_expr_nud()` - Return statements
+- `parse_break_expr_nud()` - Break statements
+- `parse_continue_expr_nud()` - Continue statements
+- `parse_if_expr_nud()` - If expressions
+- `parse_while_expr_nud()` - While loops
+- `parse_paren_expr_nud()` - Parenthesized expressions
+- `parse_block_expr_nud()` - Block expressions
+- `parse_unary_op_nud()` - Unary operators (`!`, `-`, `@`, `&`)
+
+### LED Handlers
+
+Infix/postfix expressions (expr.rs:124-175):
+
+- `parse_assignment_led()` - Assignment operator `=`
+- `parse_compound_assignment_led()` - Compound assignments `+=`, `-=`, etc.
+- `parse_binary_infix_op_led()` - Binary operators
+- `parse_cast_led()` - Type casts with `as`
+- `parse_call_led()` - Function calls
+
+### Associativity
+
+The parser handles associativity in the binding power check:
+
+```rust
+let right_bp = if is_right_associative {
+    left_bp  // Don't increment for right-associative
+} else {
+    left_bp + 1  // Increment for left-associative
+};
+self.pratt_parse_expression(right_bp)
+```
+
+- **Right-associative** - Assignment: `a = b = c` → `a = (b = c)`
+- **Left-associative** - Most operators: `a - b - c` → `(a - b) - c`
+
+## Binary Operators
+
+Implemented in `parser/binary_ops.rs`. Supports:
+
+### Arithmetic
+- Addition `+`, Subtraction `-`, Multiplication `*`, Division `/`, Modulo `%`
+- Power `**` (planned)
+
+### Comparison
+- Equality `==`, Inequality `!=`
+- Relational `<`, `<=`, `>`, `>=`
+
+### Logical
+- And `&&`, Or `||`
+
+### Bitwise
+- And `&`, Or `|`, Xor `^`
+- Shift left `<<`, Shift right `>>`
+
+## Unary Operators
+
+Defined in `parser/node.rs:141-146`:
+
+```rust
+pub enum UnaryOpKind {
+    Neg,       // Negation: -x
+    Not,       // Logical not: !x
+    Deref,     // Dereference: @ptr
+    AddressOf, // Address-of: &var
+}
+```
+
+## Assignment Parsing
+
+Two forms:
+
+### Simple Assignment
+
+```volette
+x = 5
+```
+
+Parsed as `Assign { target: x, value: 5 }`
+
+### Compound Assignment
+
+```volette
+x += 5
+```
+
+Parsed as `CompoundAssign { target: x, value: 5, op: Add }`
+
+Compound assignments are later desugared into regular assignments.
+
+## Block Expressions
+
+Blocks are expressions that can contain multiple statements:
+
+```volette
+{
+    let x = 5;
+    let y = 10;
+    x + y  // Block value is last expression
+}
+```
+
+Parsed as `Block { exprs: [let x, let y, x+y] }`
+
+## Control Flow
+
+### If Expressions
+
+```volette
+if condition { then_block } else { else_block }
+```
+
+Parsed as:
+```rust
+If {
+    cond: condition,
+    then_block: block_node,
+    else_block: Some(else_node)
+}
+```
+
+If expressions can return values when both branches exist.
+
+### While Loops
+
+```volette
+while condition { body }
+```
+
+Parsed as:
+```rust
+While {
+    cond: condition,
+    body: body_block
+}
+```
+
+## Type Annotations
+
+Types are represented by the `VType` enum:
+
+```rust
+pub enum VType {
+    Primitive(PrimitiveTypes),  // i32, f64, bool, etc.
+    Custom(SymbolUsize),        // User-defined types
+    Pointer(Box<VType>),        // Pointer types
+    Struct(Vec<Field>),         // Struct types
+}
+```
+
+Type annotations appear in:
+- Function parameters: `fn foo(x: i32)`
+- Function return types: `fn foo() -> i32`
+- Let bindings: `let x: i32 = 5`
+- Type casts: `x as i64`
+
+## Function Calls
+
+Function calls are parsed with precedence level `Call`:
+
+```volette
+foo(arg1, arg2)
+```
+
+Parsed as:
+```rust
+Call {
+    func: identifier_node,  // foo
+    args: [arg1_node, arg2_node]
+}
+```
+
+## Type Casts
+
+```volette
+value as i64
+```
+
+Parsed as:
+```rust
+Cast {
+    expr: value_node,
+    target_type: VType::Primitive(I64)
+}
+```
+
+## Desugaring
+
+After parsing, compound assignments are desugared into regular assignments in `parser/desugar.rs`.
+
+### Compound Assignment Desugaring
+
+The `desugar()` function (desugar.rs:9-19) transforms:
+
+```volette
+x += 1
+```
+
+From:
+```rust
+CompoundAssign { target: x, value: 1, op: Add }
+```
+
+To:
+```rust
+Assign {
+    target: x,
+    value: BinOp { left: x, right: 1, op: Add }
+}
+```
+
+This simplification means later compiler phases only need to handle `Assign`, not `CompoundAssign`.
+
+### Desugaring Process
+
+1. Traverse the AST starting from root
+2. Visit all function definitions
+3. Recursively desugar expressions
+4. When `CompoundAssign` found:
+   - Clone target for left operand
+   - Create `BinOp` node
+   - Replace with `Assign` node
+
+## Error Recovery
+
+The parser implements panic-mode error recovery:
+
+1. When error encountered, push to `parse_errors`
+2. Skip tokens until reaching a synchronization point:
+   - `fn` keyword (next function)
+   - Opening braces `{` or parentheses `(`
+   - Semicolons `;`
+   - EOF
+3. Continue parsing from synchronization point
+4. Collect multiple errors in single pass
+
+This allows reporting multiple syntax errors at once rather than stopping at the first error.
+
+## Arena Allocation
+
+The parser uses `generational_arena` for AST storage:
+
+```rust
+pub fn push(&mut self, node: Node) -> Index {
+    self.tree.insert(node)
+}
+
+pub fn node(&self, idx: &Index) -> Option<&Node> {
+    self.tree.get(*idx)
+}
+```
+
+Benefits:
+- No lifetime annotations needed
+- Safe indexed access
+- Nodes can reference each other by `Index`
+- Memory managed in single arena
+
+## Token Navigation
+
+The parser provides methods for moving through tokens:
+
+```rust
+pub fn advance(&mut self) -> Option<Token>  // Move to next token
+pub fn backtrack(&mut self)                 // Move to previous token
+pub fn peek_offset(&self, offset: usize) -> Option<&Token>  // Look ahead
+pub fn current(&self) -> &Token             // Current token
+```
+
+## Example AST
+
+For the function:
+
+```volette
+fn add(x: i32, y: i32) -> i32 {
+    x + y
+}
+```
+
+The parser produces:
+
+```
+Root {
+  defs: [
+    Def::Function {
+      name: "add",
+      params: [("x", I32), ("y", I32)],
+      return_type: I32,
+      body: Block {
+        exprs: [
+          BinOp {
+            left: Identifier("x"),
+            right: Identifier("y"),
+            op: Add
+          }
+        ]
+      }
+    }
+  ]
+}
+```

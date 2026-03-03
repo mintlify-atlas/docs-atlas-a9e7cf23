@@ -1,0 +1,467 @@
+---
+title: Analysis
+description: Type checking and semantic analysis in the Volette compiler
+---
+
+The analysis phase performs semantic analysis on the AST, primarily focusing on type checking and name resolution. It ensures the program is well-typed and all identifiers are properly defined before code generation.
+
+## Overview
+
+The analysis phase is implemented in `src/compiler/analysis/mod.rs` and consists of two main components:
+
+1. **Function Table Generation** - Building a symbol table of all functions
+2. **Type Checking** - Verifying type correctness throughout the AST
+
+### Analysis Entry Point
+
+The `analyze()` function (analysis/mod.rs:21-35):
+
+```rust
+pub fn analyze(
+    root: &Node,
+    interner: &StringInterner,
+    nodes: &mut Arena<Node>,
+) -> ResultWithDiagnostics<HashMap<SymbolUsize, (Vec<VType>, VType)>>
+```
+
+Process:
+1. Generate function table from AST
+2. Type check all function bodies
+3. Return function table with collected diagnostics
+4. Errors don't stop analysis - all errors are collected
+
+## Function Table Generation
+
+Implemented in `analysis/function_table.rs:8-23`.
+
+### Purpose
+
+The function table maps function names to their signatures:
+
+```rust
+HashMap<SymbolUsize, (Vec<VType>, VType)>
+//      function_name  (param_types, return_type)
+```
+
+This enables:
+- Function call type checking
+- Verifying correct number of arguments
+- Checking argument types match parameters
+- Determining return type of calls
+
+### Generation Process
+
+The `generate_function_table()` function:
+
+1. Iterates through all nodes in the arena
+2. Finds nodes of kind `Def::Function`
+3. Extracts function signature:
+   - Function name (symbol)
+   - Parameter types (from param list)
+   - Return type
+4. Inserts into hash map
+
+Example:
+```volette
+fn add(x: i32, y: i32) -> i32 { x + y }
+```
+
+Produces entry:
+```rust
+"add" -> ([I32, I32], I32)
+```
+
+## Type Context
+
+The `TypeCtx` struct (analysis/context.rs:11-34) maintains state during type checking:
+
+```rust
+pub struct TypeCtx<'a> {
+    pub nodes: &'a mut Arena<Node>,           // AST nodes
+    pub interner: &'a StringInterner,         // String interning
+    pub ident_types: HashMap<SymbolUsize, VType>,  // Variable types
+    pub fn_table: &'a HashMap<...>,           // Function signatures
+    pub diagnostics: &'a mut ReportCollection, // Type errors
+}
+```
+
+### Identifier Type Map
+
+Tracks types of variables in current scope:
+- Function parameters are added at function start
+- Let bindings add new identifiers
+- Identifiers are resolved during expression type checking
+
+## Type Checking
+
+Implemented in `analysis/type_check.rs` and `analysis/resolve.rs`.
+
+### Function Type Checking
+
+The `type_check_root()` function (type_check.rs:16-93):
+
+1. Iterates through all function definitions
+2. For each function:
+   - Creates new `TypeCtx` with empty identifier map
+   - Adds all parameters to identifier map
+   - Checks for duplicate parameter names
+   - Type checks the function body
+   - Verifies body type matches return type
+3. Collects all diagnostics without stopping
+
+### Expression Type Resolution
+
+The `resolve_expr_type()` method (resolve.rs:18-232) is the core type checking algorithm.
+
+#### Signature
+
+```rust
+pub fn resolve_expr_type(
+    &mut self,
+    target_idx: Index,
+    expected: Option<&VType>
+) -> Result<VType, Report>
+```
+
+Parameters:
+- `target_idx` - Node to type check
+- `expected` - Optional expected type for checking
+
+Return:
+- Inferred type of the expression
+- Error if type checking fails
+
+#### Process
+
+1. Check if node already has type annotation
+2. If expected type provided, verify match
+3. Otherwise, infer type based on expression kind
+4. Store inferred type in node
+5. Return inferred type
+
+### Type Checking by Expression Kind
+
+#### Literals
+
+Literals have default types (analysis/mod.rs:37-43):
+
+```rust
+match literal {
+    Literal::Int(_) => VType::Primitive(PrimitiveTypes::I32),
+    Literal::Float(_) => VType::Primitive(PrimitiveTypes::F32),
+    Literal::Bool(_) => VType::Primitive(PrimitiveTypes::Bool),
+}
+```
+
+If expected type provided, literal is checked against it.
+
+#### Identifiers
+
+Identifier resolution (resolve.rs:40-46):
+
+1. Look up identifier in `ident_types` map
+2. If found, return its type
+3. If not found, error: "Unresolved identifier"
+
+#### Let Bindings
+
+Let binding type checking (resolve.rs:48-56):
+
+1. Type check the value expression
+2. If type annotation provided, check value matches
+3. Add identifier and its type to `ident_types`
+4. Return the value type
+
+```volette
+let x: i32 = 42;  // Type annotation checked
+let y = 3.14;     // Type inferred as f32
+```
+
+#### Binary Operations
+
+Implemented in `analysis/checks.rs`. Binary operations require:
+
+1. Both operands have compatible types
+2. Operator is valid for the types
+3. Result type is determined by operator
+
+Arithmetic operators (`+`, `-`, `*`, `/`, `%`):
+- Require numeric types (int or float)
+- Both operands must have same type
+- Result type is same as operand type
+
+Comparison operators (`==`, `!=`, `<`, `>`, `<=`, `>=`):
+- Require numeric types
+- Both operands must have same type
+- Result type is `bool`
+
+Logical operators (`&&`, `||`):
+- Require `bool` operands
+- Result type is `bool`
+
+Bitwise operators (`&`, `|`, `^`, `<<`, `>>`):
+- Require integer types
+- Result type is same as operand type
+
+#### Unary Operations
+
+Unary operator type checking:
+
+- **Negation** (`-x`) - Requires numeric type, returns same type
+- **Logical Not** (`!x`) - Requires `bool`, returns `bool`
+- **Address-of** (`&x`) - Returns `Pointer(type_of_x)`
+- **Dereference** (`@ptr`) - Requires pointer, returns pointed-to type
+
+#### Assignments
+
+Assignment type checking (resolve.rs:58-72):
+
+1. Resolve type of target (must be identifier)
+2. Resolve type of value expression
+3. Check target type equals value type
+4. Return target type (assignment is an expression)
+
+#### Function Calls
+
+Call type checking (resolve.rs:131-183):
+
+1. Extract function name from call expression
+2. Look up function in function table
+3. If not found, error: "Unresolved function"
+4. Check argument count matches parameter count
+5. For each argument:
+   - Type check with expected parameter type
+   - Verify argument type matches parameter type
+6. Return function's return type
+
+```volette
+fn add(x: i32, y: i32) -> i32 { x + y }
+let result = add(5, 10);  // Type checks: i32
+let bad = add(5);         // Error: expected 2 arguments, got 1
+let wrong = add(5, 3.14); // Error: expected i32, got f32
+```
+
+#### Block Expressions
+
+Block type checking (resolve.rs:80-95):
+
+1. Type check each expression in sequence
+2. Collect errors but continue checking
+3. Return type is type of last expression
+4. Empty blocks have type `Unit`
+
+```volette
+{
+    let x = 5;    // Type: i32
+    let y = 10;   // Type: i32
+    x + y         // Type: i32 (block type)
+}
+```
+
+#### If Expressions
+
+If expression type checking (resolve.rs:96-123):
+
+1. Type check condition, must be `bool`
+2. Type check then-block
+3. If else-block exists:
+   - Type check else-block
+   - Verify then and else types match
+   - Return the common type
+4. If no else-block, return `Unit`
+
+```volette
+let x = if condition { 1 } else { 2 };  // Type: i32
+if condition { print(x); }  // Type: unit (no else)
+```
+
+#### While Loops
+
+While loop type checking (resolve.rs:124-129):
+
+1. Type check condition, must be `bool`
+2. Type check body (type ignored)
+3. Return `Unit` (loops don't produce values)
+
+#### Type Casts
+
+Cast type checking (resolve.rs:185-199):
+
+1. Type check the expression being cast
+2. Check if conversion is valid via `can_convert()`
+3. If valid, return target type
+4. If invalid, error: "Invalid cast"
+
+Implemented in `analysis/compatible.rs`.
+
+#### Control Flow
+
+Special type handling:
+
+- **Return** (resolve.rs:74-79) - Type is `Never` (diverges)
+- **Break** (resolve.rs:130) - Type is `Never`
+- **Continue** (resolve.rs:130) - Type is `Never`
+
+The `Never` type indicates control flow doesn't continue.
+
+## Type Compatibility
+
+Implemented in `analysis/compatible.rs`.
+
+### Type Conversion Rules
+
+The `can_convert()` function determines valid casts:
+
+**Numeric conversions:**
+- Integer to integer (any size/signedness)
+- Float to float
+- Integer to float
+- Float to integer (with potential loss)
+
+**Pointer conversions:**
+- Any type to pointer type (address-of)
+- Pointer to integer (for arithmetic)
+
+**Identity:**
+- Any type to itself
+
+### Type Equality
+
+Types must match exactly for:
+- Assignment
+- Function arguments
+- Binary operation operands
+- Return statements
+
+## Type Annotations in AST
+
+During type checking, inferred types are stored in nodes:
+
+```rust
+NodeKind::Expr {
+    kind: ExprKind::...,
+    type_: Option<VType>,  // Set during type checking
+}
+```
+
+The `set_type()` method (parser/node.rs:230-238) updates the type:
+
+```rust
+impl Node {
+    pub fn set_type(&mut self, t: VType) {
+        match &mut self.kind {
+            NodeKind::Expr { type_, .. } => {
+                type_.replace(t);
+            }
+            _ => unimplemented!(),
+        }
+    }
+}
+```
+
+Later phases (codegen) read these type annotations.
+
+## Error Reporting
+
+Type errors include:
+
+### Type Mismatch
+```
+Type mismatch: expected i32, got f64
+  at file.vol:5:10-5:15
+```
+
+### Unresolved Identifier
+```
+Unresolved identifier 'x'
+  at file.vol:3:5-3:6
+Help: This identifier or symbol was not found in the current scope
+```
+
+### Unresolved Function
+```
+Unresolved function 'foo'
+  at file.vol:8:10-8:13
+```
+
+### Invalid Cast
+```
+Invalid cast: cannot cast type Struct(...) into i32
+  at file.vol:12:5-12:15
+```
+
+### Argument Count Mismatch
+```
+Type mismatch: expected 2 argument(s), got 3 argument(s)
+  at file.vol:10:5-10:20
+```
+
+## Diagnostics Collection
+
+The analysis phase uses `ResultWithDiagnostics`:
+
+```rust
+pub struct ResultWithDiagnostics<T> {
+    value: T,
+    diagnostics: ReportCollection,
+}
+```
+
+This allows:
+- Continuing analysis after errors
+- Collecting multiple errors in one pass
+- Returning successful result (function table) with errors
+- Better user experience (see all errors at once)
+
+## Default Type Rules
+
+When no type annotation provided:
+
+- Integer literals default to `i32`
+- Float literals default to `f32`
+- Boolean literals are `bool`
+- Type can be changed with cast: `42 as i64`
+
+## Future Analysis
+
+Planned analysis features:
+
+- **Borrow checking** - Ensure safe memory access
+- **Lifetime analysis** - Track reference validity
+- **Constant evaluation** - Evaluate compile-time constants
+- **Dead code detection** - Warn about unused code
+- **Mutability checking** - Enforce const/mutable distinctions
+- **Name resolution** - Full module system
+- **Trait resolution** - Type class constraints
+
+## Example Analysis
+
+For this code:
+
+```volette
+fn calculate(x: i32, y: f32) -> f32 {
+    let z = x as f32;
+    z + y
+}
+```
+
+Analysis produces:
+
+1. **Function table entry:**
+   ```rust
+   "calculate" -> ([I32, F32], F32)
+   ```
+
+2. **Type checking:**
+   - Parameter `x` has type `I32`
+   - Parameter `y` has type `F32`
+   - Cast `x as f32` produces `F32`
+   - Let binding `z` has type `F32`
+   - Binary op `z + y` requires same types: `F32 + F32 = F32`
+   - Body type `F32` matches return type `F32` ✓
+
+3. **AST annotations:**
+   - `x as f32` node gets type `F32`
+   - `z` identifier gets type `F32`
+   - `z + y` expression gets type `F32`
+   - Block gets type `F32`
